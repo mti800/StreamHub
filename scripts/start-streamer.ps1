@@ -16,7 +16,7 @@ if (-not (Test-Path "node_modules")) {
 # Verificar si el servidor está corriendo
 $serverUrl = "http://localhost:3000/health"
 try {
-    $response = Invoke-WebRequest -Uri $serverUrl -UseBasicParsing -ErrorAction SilentlyContinue
+    Invoke-WebRequest -Uri $serverUrl -UseBasicParsing -ErrorAction Stop | Out-Null
     Write-Host "✅ Servidor detectado en http://localhost:3000" -ForegroundColor Green
 } catch {
     Write-Host "⚠️  ADVERTENCIA: No se detectó el servidor en http://localhost:3000" -ForegroundColor Yellow

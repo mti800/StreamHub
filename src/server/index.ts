@@ -50,28 +50,9 @@ class StreamHubServer {
     // Servir archivos estáticos
     this.app.use(express.static(path.join(__dirname, '../../public')));
 
-    // Ruta principal
+    // Ruta principal - sirve index.html desde public
     this.app.get('/', (req, res) => {
-      res.send(`
-        <html>
-          <head>
-            <title>StreamHub</title>
-            <style>
-              body { font-family: Arial; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-              a { display: inline-block; margin: 20px; padding: 20px 40px; background: white; color: #667eea; text-decoration: none; border-radius: 10px; font-size: 20px; font-weight: bold; }
-              a:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-            </style>
-          </head>
-          <body>
-            <h1>🎬 StreamHub</h1>
-            <p>Sistema de streaming en vivo con chat</p>
-            <div>
-              <a href="/streamer.html">📺 Soy Streamer</a>
-              <a href="/viewer.html">👁️ Soy Viewer</a>
-            </div>
-          </body>
-        </html>
-      `);
+      res.sendFile(path.join(__dirname, '../../public/index.html'));
     });
 
     this.app.get('/health', (req, res) => {

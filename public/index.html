@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎃 StreamHub - Halloween Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Creepster', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a0033 0%, #2d0052 50%, #4a0080 100%);
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 140, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(148, 0, 211, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #1a0033 0%, #2d0052 50%, #4a0080 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '🎃👻🦇💀🕷️🎃👻🦇💀🕷️🎃👻🦇💀🕷️';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200%;
+            font-size: 60px;
+            opacity: 0.08;
+            z-index: 0;
+            animation: float 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        body::after {
+            content: '🕸️🕷️🕸️🕷️🕸️🕷️🕸️🕷️🕸️🕷️';
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 200%;
+            font-size: 40px;
+            opacity: 0.08;
+            z-index: 0;
+            animation: float 25s linear infinite reverse;
+            white-space: nowrap;
+        }
+
+        @keyframes float {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0%); }
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .logo {
+            font-size: 5em;
+            color: #ff8c00;
+            margin-bottom: 20px;
+            font-weight: 900;
+            letter-spacing: 8px;
+            text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff6b00, 0 0 30px #ff4500, 0 0 40px #ff4500;
+            animation: glow 2s ease-in-out infinite alternate;
+            line-height: 1.2;
+        }
+
+        .logo::before {
+            content: '🎃 ';
+            font-size: 0.8em;
+        }
+
+        .logo::after {
+            content: ' 🎃';
+            font-size: 0.8em;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff6b00, 0 0 30px #ff4500, 0 0 40px #ff4500;
+            }
+            to {
+                text-shadow: 0 0 20px #ff8c00, 0 0 30px #ff6b00, 0 0 40px #ff4500, 0 0 50px #ff4500, 0 0 60px #ff4500;
+            }
+        }
+
+        .subtitle {
+            color: #ffa500;
+            font-size: 1.5em;
+            text-shadow: 0 0 10px #ff8c00;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            color: #da70d6;
+            font-size: 1.1em;
+            text-shadow: 0 0 5px #9370db;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 3px solid #ff8c00;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.3), 0 0 50px rgba(148, 0, 211, 0.2);
+        }
+
+        .card::before {
+            content: '🕸️';
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            font-size: 80px;
+            opacity: 0.2;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(255, 140, 0, 0.5), 0 0 80px rgba(148, 0, 211, 0.4);
+            border-color: #ffa500;
+        }
+
+        .card:hover::before {
+            transform: rotate(20deg) scale(1.2);
+            opacity: 0.4;
+        }
+
+        .card-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px rgba(255, 140, 0, 0.5));
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .card:nth-child(1) .card-icon {
+            animation-delay: 0s;
+        }
+
+        .card:nth-child(2) .card-icon {
+            animation-delay: 0.3s;
+        }
+
+        .card-title {
+            color: #ff8c00;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px #ff8c00;
+        }
+
+        .card-description {
+            color: #ffa500;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .card-link {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #1a0033;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1.2em;
+            border: 2px solid #ff8c00;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+        }
+
+        .card-link:hover {
+            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
+        }
+
+        .features {
+            margin-top: 50px;
+            text-align: center;
+            background: rgba(25, 0, 51, 0.6);
+            border: 2px solid #9370db;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(147, 112, 219, 0.3);
+        }
+
+        .features h2 {
+            color: #ff8c00;
+            font-size: 2em;
+            margin-bottom: 25px;
+            text-shadow: 0 0 10px #ff8c00;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature-item {
+            color: #ffa500;
+            font-size: 1.1em;
+            padding: 15px;
+            background: rgba(75, 0, 130, 0.3);
+            border-left: 3px solid #ff8c00;
+            border-radius: 8px;
+        }
+
+        .feature-item::before {
+            content: '🔮 ';
+            margin-right: 8px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #9370db;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 3em;
+                letter-spacing: 4px;
+            }
+            
+            .subtitle {
+                font-size: 1.2em;
+            }
+            
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="logo">STREAMHUB</h1>
+            <p class="subtitle">👻 Halloween Streaming Edition 🦇</p>
+            <p class="tagline">Transmite terror en vivo con chat en tiempo real</p>
+        </div>
+
+        <div class="cards-container">
+            <div class="card" onclick="window.location.href='/streamer.html'">
+                <div class="card-icon">🎥</div>
+                <h2 class="card-title">Streamer</h2>
+                <p class="card-description">
+                    Comparte tu stream de terror con el mundo. 
+                    Transmite video en vivo y chatea con tu audiencia.
+                </p>
+                <a href="/streamer.html" class="card-link">Iniciar Stream</a>
+            </div>
+
+            <div class="card" onclick="window.location.href='/viewer.html'">
+                <div class="card-icon">👁️</div>
+                <h2 class="card-title">Viewer</h2>
+                <p class="card-description">
+                    Únete a streams en vivo y disfruta del terror.
+                    Reacciona y chatea en tiempo real.
+                </p>
+                <a href="/viewer.html" class="card-link">Ver Streams</a>
+            </div>
+        </div>
+
+        <div class="features">
+            <h2>💀 Características Espeluznantes</h2>
+            <div class="features-grid">
+                <div class="feature-item">Video en vivo WebRTC</div>
+                <div class="feature-item">Chat en tiempo real</div>
+                <div class="feature-item">Reacciones instantáneas</div>
+                <div class="feature-item">Sistema Pub/Sub</div>
+                <div class="feature-item">Múltiples viewers</div>
+                <div class="feature-item">Stream keys únicas</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🕷️ StreamHub - Donde el streaming cobra vida... o muerte 🕷️</p>
+            <p style="margin-top: 10px; font-size: 0.8em;">Powered by WebRTC, Socket.IO & TypeScript</p>
+        </div>
+    </div>
+</body>
+</html>
