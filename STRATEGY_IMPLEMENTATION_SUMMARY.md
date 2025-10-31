@@ -35,11 +35,6 @@
 - Método genérico `createMessage()` para cualquier tipo
 - **Mantiene compatibilidad** con API anterior
 
-#### README.md
-- Añadida sección del patrón Strategy
-- Actualizada estructura del proyecto
-- Link a documentación de extensión
-
 ## 🎯 Beneficios Implementados
 
 ### 1. **Open/Closed Principle**
@@ -126,12 +121,6 @@ MessageFactory.registerStrategy(
    - Moderación
    - Mensajes solo para suscriptores
    - Mensajes destacados pagos
-
-### Mejoras Adicionales
-- [ ] Añadir decoradores para logging/auditoría
-- [ ] Implementar cadena de responsabilidad para filtros
-- [ ] Cache de estrategias para mejor rendimiento
-- [ ] Estrategias compuestas (combinar varias)
 
 ## ✨ Resultado Final
 

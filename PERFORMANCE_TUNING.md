@@ -1,243 +1,402 @@
-# ⚙️ Configuración de Calidad del Stream
+# ⚙️ Configuración de Rendimiento - StreamHub
 
-# 🚀 Optimizaciones Implementadas
+Guía completa de optimización para el sistema de streaming WebRTC con arquitectura multicast.
 
-## ✅ Mejoras Realizadas (Última Actualización)
+---
 
-### 1. **WebP en lugar de JPEG**
-- ✅ Mejor compresión (~30% más eficiente)
-- ✅ Menor tamaño de datos transmitidos
-- ✅ Misma calidad visual con menos bytes
+## 🎯 Arquitectura de Streaming Actual
 
-**Antes**: JPEG @ 75% calidad  
-**Ahora**: WebP @ 80% calidad  
-**Resultado**: ~25-35% reducción en tamaño de archivo
+StreamHub utiliza **WebRTC** para transmisión de video/audio en tiempo real:
 
-### 2. **Aumento de FPS**
-- ✅ De 10 FPS a 15 FPS
-- ✅ Movimiento más fluido
-- ✅ Mejor experiencia visual
+```
+STREAMER (getUserMedia)
+    ↓ WebRTC PeerConnection
+  SERVER (Señalización Socket.IO)
+    ↓ Multicast optimizado
+ VIEWERS (1...N)
+```
 
-**Antes**: 100ms por frame (10 FPS)  
-**Ahora**: 66ms por frame (15 FPS)  
-**Resultado**: 50% más fluido
+### Características Clave
+- ✅ **WebRTC nativo**: Video/audio de calidad profesional
+- ✅ **Arquitectura Multicast**: 1 streamer → N viewers sin degradación
+- ✅ **Ancho de banda constante**: El streamer usa ~2-5 Mbps independiente de viewers
+- ✅ **Audio integrado**: Opus codec @ 48kHz con cancelación de eco
+- ✅ **Latencia ultra-baja**: ~200-500ms end-to-end
 
-### 3. **Audio Streaming IMPLEMENTADO**
-- ✅ Captura de audio con MediaRecorder
-- ✅ Codec Opus (excelente calidad, bajo bitrate)
-- ✅ Chunks cada 100ms sincronizados con video
-- ✅ Bitrate: 64kbps (calidad óptima)
+---
 
-## 📊 Comparativa de Rendimiento
-
-| Métrica | Anterior | Actual | Mejora |
-|---------|----------|--------|--------|
-| **Formato Video** | JPEG 75% | WebP 80% | +30% compresión |
-| **FPS** | 10 | 15 | +50% fluidez |
-| **Audio** | ❌ No | ✅ Sí (Opus 64k) | ✅ Implementado |
-| **Tamaño Frame** | ~45 KB | ~30 KB | -33% |
-| **Ancho de banda/seg** | ~450 KB/s | ~450 KB/s | Igual (por mejor compresión) |
-
-## 🎯 Configuración Actual
+## 📊 Configuración Actual (streamer.html líneas ~434-444)
 
 ### Video
-- **Resolución**: 640x480
-- **FPS**: 15
-- **Formato**: WebP
-- **Calidad**: 80%
-- **Bitrate estimado**: ~3.6 Mbps
-
-### Audio
-- **Codec**: Opus (WebM)
-- **Bitrate**: 64 kbps
-- **Chunks**: 100ms
-- **Sincronización**: Con video
-
-## 🔧 Ajustes Disponibles
-
-### Para Mayor Calidad (más ancho de banda)
 ```javascript
-// En streamer.html línea ~570
-canvas.width = 1280;  // HD
-canvas.height = 720;
-}, 'image/webp', 0.9); // Calidad 90%
-}, 50); // 20 FPS
-```
-
-### Para Menor Ancho de Banda (más eficiente)
-```javascript
-// En streamer.html línea ~570
-canvas.width = 480;   // SD
-canvas.height = 360;
-}, 'image/webp', 0.7); // Calidad 70%
-}, 100); // 10 FPS
-```
-
-### Streamer
-- ✅ Cambió de `setInterval` a `requestAnimationFrame` (mejor performance)
-- ✅ Aumentó de 10 FPS a 30 FPS
-- ✅ Mejoró calidad JPEG de 75% a 80%
-- ✅ Control de timing preciso (throttle a 30 FPS exactos)
-
-### Viewer
-- ✅ Renderizado inmediato sin delays
-- ✅ Logs reducidos para mejor performance
-
-## 📊 Configuraciones Disponibles
-
-### En `streamer.html` (línea ~560)
-
-#### Opción 1: Alta Calidad (Recomendado)
-```javascript
-const targetFPS = 30;           // FPS objetivo
-canvas.width = 640;             // Ancho (línea ~525)
-canvas.height = 480;            // Alto (línea ~526)
-}, 'image/jpeg', 0.8);          // Calidad 80% (línea ~589)
-```
-**Resultado**: Fluido, buena calidad, ~3 Mbps
-
-#### Opción 2: Performance (Más FPS)
-```javascript
-const targetFPS = 60;           // FPS objetivo
-canvas.width = 480;             // Ancho
-canvas.height = 360;            // Alto
-}, 'image/jpeg', 0.7);          // Calidad 70%
-```
-**Resultado**: Muy fluido, calidad media, ~4 Mbps
-
-#### Opción 3: Económico (Menos ancho de banda)
-```javascript
-const targetFPS = 24;           // FPS objetivo
-canvas.width = 640;             // Ancho
-canvas.height = 480;            // Alto
-}, 'image/jpeg', 0.6);          // Calidad 60%
-```
-**Resultado**: Aceptable, calidad reducida, ~1.5 Mbps
-
-#### Opción 4: Modo "Twitch" (HD)
-```javascript
-const targetFPS = 30;           // FPS objetivo
-canvas.width = 1280;            // Ancho
-canvas.height = 720;            // Alto
-}, 'image/jpeg', 0.85);         // Calidad 85%
-```
-**Resultado**: Alta calidad, ~8 Mbps (requiere buena conexión)
-
-#### Opción 5: Modo "Bajo Recursos"
-```javascript
-const targetFPS = 15;           // FPS objetivo
-canvas.width = 320;             // Ancho
-canvas.height = 240;            // Alto
-}, 'image/jpeg', 0.5);          // Calidad 50%
-```
-**Resultado**: Básico pero funcional, ~500 Kbps
-
-## 🚀 Cómo Cambiar la Configuración
-
-### 1. Abrir el archivo
-```
-c:\Users\Matia\streamHub\public\streamer.html
-```
-
-### 2. Buscar la línea ~560
-```javascript
-const targetFPS = 30; // <-- CAMBIAR AQUÍ
-```
-
-### 3. Buscar las líneas ~525-526
-```javascript
-canvas.width = 640;   // <-- CAMBIAR AQUÍ
-canvas.height = 480;  // <-- CAMBIAR AQUÍ
-```
-
-### 4. Buscar la línea ~589
-```javascript
-}, 'image/jpeg', 0.8); // <-- CAMBIAR AQUÍ
-```
-
-### 5. Guardar y refrescar el navegador
-
-## 📈 Comparativa de Configuraciones
-
-| Configuración | FPS | Resolución | Calidad | Ancho de Banda | Uso |
-|---------------|-----|------------|---------|----------------|-----|
-| **Alta Calidad** | 30 | 640x480 | 80% | ~3 Mbps | Recomendado ✅ |
-| Performance | 60 | 480x360 | 70% | ~4 Mbps | Juegos/acción |
-| Económico | 24 | 640x480 | 60% | ~1.5 Mbps | WiFi débil |
-| Twitch HD | 30 | 1280x720 | 85% | ~8 Mbps | Producción |
-| Bajo Recursos | 15 | 320x240 | 50% | ~500 Kbps | Dispositivos lentos |
-
-## 🎮 Consejos por Tipo de Contenido
-
-### 🎬 Charla/Presentación
-- **FPS**: 24
-- **Resolución**: 640x480
-- **Calidad**: 70%
-
-### 🎮 Gaming
-- **FPS**: 60
-- **Resolución**: 1280x720
-- **Calidad**: 75%
-
-### 🎤 Música/Concierto
-- **FPS**: 30
-- **Resolución**: 1280x720
-- **Calidad**: 85%
-
-### 💬 Chat casual
-- **FPS**: 15-24
-- **Resolución**: 480x360
-- **Calidad**: 60%
-
-## 🔧 Optimizaciones Adicionales (Avanzado)
-
-### Usar WebP en lugar de JPEG (Mejor compresión)
-```javascript
-}, 'image/webp', 0.8);
-```
-⚠️ Requiere verificar compatibilidad del navegador
-
-### Ajustar resolución según conexión (Adaptive Bitrate)
-```javascript
-// Detectar velocidad de conexión y ajustar
-if (navigator.connection && navigator.connection.downlink < 2) {
-    canvas.width = 320;
-    canvas.height = 240;
+video: { 
+    width: 1300,      // ← Resolución horizontal
+    height: 720,      // ← Resolución vertical
+    frameRate: 30     // ← FPS (frames por segundo)
 }
 ```
 
-### Usar OffscreenCanvas (Mejor performance)
+### Audio
 ```javascript
-canvas = new OffscreenCanvas(640, 480);
+audio: {
+    echoCancellation: true,     // Cancelación de eco
+    noiseSuppression: true,     // Supresión de ruido
+    autoGainControl: true,      // Control automático de ganancia
+    sampleRate: 48000           // Calidad de audio (48kHz)
+}
 ```
-⚠️ Solo navegadores modernos
+
+**Estado actual**: 
+- Resolución: 1300x720 (casi HD)
+- FPS: 30 (fluido)
+- Audio: 48kHz estéreo con procesamiento
+- Ancho de banda estimado: ~2.5-4 Mbps
+
+---
+
+## 🔧 Perfiles de Configuración Recomendados
+
+### Dónde Editar
+**Archivo**: `c:\Users\Matia\streamHub\public\streamer.html`  
+**Líneas**: ~434-444 (función `initCamera()`)
+
+---
+
+### 📹 Perfil 1: Alta Calidad (Recomendado) ✅
+**Uso**: Streaming profesional, producción, tutoriales
+
+```javascript
+localStream = await navigator.mediaDevices.getUserMedia({
+    video: { 
+        width: 1280,        // HD
+        height: 720,        
+        frameRate: 30       
+    },
+    audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 48000
+    }
+});
+```
+
+**Características**:
+- Resolución: 1280x720 (HD 720p)
+- FPS: 30
+- Audio: Calidad máxima
+- Ancho de banda: ~3.5-5 Mbps
+- Latencia: ~300ms
+- **Requiere**: Conexión estable ≥5 Mbps upload
+
+---
+
+### 🎮 Perfil 2: Gaming/Acción
+**Uso**: Juegos, deportes, movimiento rápido
+
+```javascript
+localStream = await navigator.mediaDevices.getUserMedia({
+    video: { 
+        width: 1280,
+        height: 720,
+        frameRate: 60       // ← Más FPS para fluidez
+    },
+    audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 48000
+    }
+});
+```
+
+**Características**:
+- Resolución: 1280x720
+- FPS: **60** (súper fluido)
+- Audio: Calidad máxima
+- Ancho de banda: ~5-7 Mbps
+- **Requiere**: Conexión ≥8 Mbps upload, PC potente
+
+---
+
+### 💡 Perfil 3: Balanceado (Internet Promedio)
+**Uso**: Streaming casual, conexión estándar
+
+```javascript
+localStream = await navigator.mediaDevices.getUserMedia({
+    video: { 
+        width: 854,         // 480p
+        height: 480,
+        frameRate: 30
+    },
+    audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 44100   // ← Slightly lower
+    }
+});
+```
+
+**Características**:
+- Resolución: 854x480 (480p)
+- FPS: 30
+- Audio: Buena calidad
+- Ancho de banda: ~1.5-2.5 Mbps
+- **Requiere**: Conexión ≥3 Mbps upload
+
+---
+
+### 📱 Perfil 4: Móvil/WiFi Débil
+**Uso**: Conexiones limitadas, dispositivos móviles
+
+```javascript
+localStream = await navigator.mediaDevices.getUserMedia({
+    video: { 
+        width: 640,
+        height: 360,        // 360p
+        frameRate: 24
+    },
+    audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 32000   // ← Reduce audio bitrate
+    }
+});
+```
+
+**Características**:
+- Resolución: 640x360 (360p)
+- FPS: 24 (cinematográfico)
+- Audio: Calidad reducida
+- Ancho de banda: ~800 KB - 1.5 Mbps
+- **Requiere**: Conexión ≥2 Mbps upload
+
+---
+
+### 🚨 Perfil 5: Emergencia (Conexión Crítica)
+**Uso**: Conexiones muy lentas, backup
+
+```javascript
+localStream = await navigator.mediaDevices.getUserMedia({
+    video: { 
+        width: 426,
+        height: 240,        // 240p
+        frameRate: 15
+    },
+    audio: {
+        echoCancellation: true,
+        noiseSuppression: false,  // ← Deshabilitar para reducir CPU
+        autoGainControl: false,
+        sampleRate: 16000         // ← Audio mínimo
+    }
+});
+```
+
+**Características**:
+- Resolución: 426x240 (240p)
+- FPS: 15
+- Audio: Calidad mínima
+- Ancho de banda: ~300-600 KB/s
+- **Requiere**: Conexión ≥1 Mbps upload
+
+---
+
+## 🎬 Configuraciones por Tipo de Contenido
+
+| Tipo de Stream | Resolución | FPS | Audio | Ancho Banda | Perfil |
+|----------------|------------|-----|-------|-------------|--------|
+| **🎤 Podcast/Charla** | 640x480 | 24 | 48kHz | ~1.5 Mbps | Balanceado |
+| **🎮 Gaming Competitivo** | 1280x720 | 60 | 48kHz | ~6 Mbps | Gaming |
+| **🎨 Arte/Tutorial** | 1280x720 | 30 | 48kHz | ~4 Mbps | Alta Calidad |
+| **💬 Just Chatting** | 854x480 | 24 | 44.1kHz | ~1.2 Mbps | Balanceado |
+| **🎵 Música/Concierto** | 1280x720 | 30 | 48kHz | ~4.5 Mbps | Alta Calidad |
+| **📱 Stream Móvil** | 640x360 | 24 | 32kHz | ~1 Mbps | Móvil |
+
+---
+
+## 🔬 Optimizaciones Avanzadas
+
+### 1. Adaptive Bitrate (Experimental)
+
+Detecta velocidad de conexión y ajusta automáticamente:
+
+```javascript
+async function initCamera() {
+    // Detectar velocidad de conexión
+    let videoConstraints = { width: 1280, height: 720, frameRate: 30 };
+    
+    if (navigator.connection) {
+        const downlink = navigator.connection.downlink; // Mbps
+        
+        if (downlink < 2) {
+            // Conexión lenta
+            videoConstraints = { width: 640, height: 360, frameRate: 24 };
+            console.log('⚠️ Conexión lenta detectada, reduciendo calidad');
+        } else if (downlink > 10) {
+            // Conexión rápida
+            videoConstraints = { width: 1920, height: 1080, frameRate: 30 };
+            console.log('🚀 Conexión rápida detectada, aumentando calidad');
+        }
+    }
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+        audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000
+        }
+    });
+}
+```
+
+### 2. Detección de CPU Alta
+
+Reduce FPS si la CPU está sobrecargada:
+
+```javascript
+let cpuUsageHigh = false;
+
+// Monitor performance
+setInterval(() => {
+    if (performance.now() > lastFrameTime + 200) {
+        // Frame drops detectados
+        cpuUsageHigh = true;
+        console.warn('⚠️ CPU alta, considera reducir FPS o resolución');
+    }
+}, 5000);
+```
+
+### 3. Modo "Solo Audio"
+
+Para podcasts o cuando el video no es necesario:
+
+```javascript
+localStream = await navigator.mediaDevices.getUserMedia({
+    video: false,  // ← Deshabilitar video
+    audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 48000
+    }
+});
+```
+
+---
 
 ## 📊 Monitoreo de Performance
 
-### Ver FPS real en consola del navegador
-Los logs ahora muestran cada 100 frames:
+### En la Consola del Navegador (Streamer)
+
+Abre DevTools (F12) y verás:
+
 ```
-📹 Frames enviados: 100, FPS: ~30
-📹 Frames enviados: 200, FPS: ~30
+✅ Cámara y micrófono iniciados correctamente
+Audio tracks: 1
+Video tracks: 1
+✅ Offer creado con audio: true
 ```
 
-### Calcular FPS manualmente
+### Verificar Calidad del Stream
+
+1. **Chrome**: `chrome://webrtc-internals`
+2. **Firefox**: `about:webrtc`
+
+Métricas importantes:
+- **packetsSent**: Paquetes enviados
+- **bytesSent**: Bytes totales
+- **framesPerSecond**: FPS real
+- **frameWidth/Height**: Resolución real
+
+### Calcular Bitrate Real
+
+```javascript
+// En la consola del navegador
+const stats = await peerConnection.getStats();
+stats.forEach(stat => {
+    if (stat.type === 'outbound-rtp' && stat.mediaType === 'video') {
+        console.log('Bitrate:', (stat.bytesSent * 8 / stat.timestamp).toFixed(2), 'bps');
+    }
+});
 ```
-FPS real = Frames enviados / (tiempo en segundos)
-```
 
-## ✨ Estado Actual
+---
 
-**Configuración Aplicada**: Alta Calidad
-- 30 FPS
-- 640x480
-- JPEG 80%
-- requestAnimationFrame (optimizado)
+## 🚨 Troubleshooting
 
-**Resultado Esperado**: 
-- Stream fluido sin stuttering
-- Calidad visual buena
-- Latencia ~500ms
-- Ancho de banda ~3 Mbps
+### Problema: Video con lag/stuttering
 
-¡Prueba y ajusta según tu conexión y necesidades! 🚀
+**Soluciones**:
+1. Reducir FPS de 30 a 24
+2. Reducir resolución (e.g., 1280x720 → 854x480)
+3. Cerrar otras apps que usen la cámara
+4. Verificar CPU/GPU usage
+
+### Problema: Audio con eco
+
+**Soluciones**:
+1. Asegurar `echoCancellation: true`
+2. Usar audífonos (no bocinas)
+3. Mutear el preview local: `videoElement.muted = true`
+
+### Problema: Alto uso de CPU
+
+**Soluciones**:
+1. Reducir FPS a 24 o 15
+2. Reducir resolución
+3. Deshabilitar `noiseSuppression` si no es crítico
+
+### Problema: Viewers no escuchan audio
+
+**Verificar**:
+1. En streamer.html línea ~444: `sampleRate: 48000` presente
+2. En viewer.html línea ~613: `videoElement.muted = false`
+3. Navegador permitió autoplay (click para activar)
+
+---
+
+## 🎯 Recomendaciones Finales
+
+### Para Streamers Principiantes
+→ Usa **Perfil Balanceado** (854x480 @ 30fps)
+
+### Para Producción Profesional
+→ Usa **Alta Calidad** (1280x720 @ 30fps)
+
+### Para Gaming/Esports
+→ Usa **Gaming** (1280x720 @ 60fps)
+
+### Para WiFi Inestable
+→ Usa **Móvil** (640x360 @ 24fps)
+
+---
+
+## 📈 Comparativa de Perfiles
+
+| Perfil | Resolución | FPS | Audio | CPU | Ancho Banda | Calidad Visual |
+|--------|------------|-----|-------|-----|-------------|----------------|
+| Alta Calidad | 1280x720 | 30 | 48kHz | Media | ~4 Mbps | ⭐⭐⭐⭐⭐ |
+| Gaming | 1280x720 | 60 | 48kHz | Alta | ~6 Mbps | ⭐⭐⭐⭐⭐ |
+| Balanceado | 854x480 | 30 | 44.1kHz | Baja | ~2 Mbps | ⭐⭐⭐⭐ |
+| Móvil | 640x360 | 24 | 32kHz | Muy Baja | ~1 Mbps | ⭐⭐⭐ |
+| Emergencia | 426x240 | 15 | 16kHz | Mínima | ~500 KB/s | ⭐⭐ |
+
+---
+
+## 🔗 Recursos Adicionales
+
+- **WebRTC Stats**: https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/
+- **Compatibility**: https://caniuse.com/webrtc
+- **Debugging**: chrome://webrtc-internals
+
+---
+
+**Última actualización**: Octubre 2025  
+**Versión de StreamHub**: 1.0.0  
+**Arquitectura**: WebRTC Multicast con Socket.IO
+
+🚀 ¡Optimiza y disfruta streaming de calidad profesional!
