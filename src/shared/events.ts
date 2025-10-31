@@ -11,16 +11,30 @@ export const Events = {
   USER_REGISTER: 'user:register',
   USER_REGISTERED: 'user:registered',
   
+  // Suscripciones
+  USER_SUBSCRIBE: 'user:subscribe',
+  USER_SUBSCRIBED: 'user:subscribed',
+  USER_UNSUBSCRIBE: 'user:unsubscribe',
+  USER_UNSUBSCRIBED: 'user:unsubscribed',
+  SUBSCRIPTIONS_GET: 'subscriptions:get',
+  SUBSCRIPTIONS_LIST: 'subscriptions:list',
+  USERS_LIST: 'users:list',
+  USERS_GET: 'users:get',
+  
   // Stream lifecycle
   STREAM_CREATE: 'stream:create',
   STREAM_CREATED: 'stream:created',
   STREAM_JOIN: 'stream:join',
   STREAM_JOINED: 'stream:joined',
+  STREAM_LEAVE: 'stream:leave',
   STREAM_START: 'stream:start',
   STREAM_STARTED: 'stream:started',
   STREAM_END: 'stream:end',
   STREAM_ENDED: 'stream:ended',
   STREAM_ERROR: 'stream:error',
+  
+  // Notificaciones de streams
+  STREAM_NOTIFICATION: 'stream:notification',
   
   // WebRTC Signaling
   WEBRTC_OFFER: 'webrtc:offer',

@@ -355,6 +355,132 @@
                 box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
             }
         }
+
+        .user-item {
+            background: rgba(75, 0, 130, 0.4);
+            border: 2px solid #9370db;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .user-item:hover {
+            border-color: #ff8c00;
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.3);
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            color: #ffa500;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .user-status {
+            color: #9370db;
+            font-size: 14px;
+        }
+
+        .user-status.streaming {
+            color: #dc143c;
+            font-weight: bold;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-subscribe {
+            background: linear-gradient(135deg, #4b0082 0%, #2e0054 100%);
+            color: #ffa500;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-subscribe.subscribed {
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #1a0033;
+        }
+
+        .btn-join-stream {
+            background: linear-gradient(135deg, #dc143c 0%, #8b0000 100%);
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .stream-card {
+            background: linear-gradient(135deg, #4b0082 0%, #2e0054 100%);
+            border: 2px solid #dc143c;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .stream-card:hover {
+            border-color: #ff8c00;
+            box-shadow: 0 5px 20px rgba(255, 140, 0, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .stream-card h4 {
+            color: #ff8c00;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4b0082 0%, #2e0054 100%);
+            border: 3px solid #ff8c00;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.5);
+            z-index: 9999;
+            animation: slideIn 0.5s ease-out;
+            max-width: 350px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification h4 {
+            color: #ff8c00;
+            margin-bottom: 10px;
+        }
+
+        .notification p {
+            color: #ffa500;
+            margin-bottom: 15px;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -375,11 +501,32 @@
 
         <!-- Join Stream Section -->
         <div id="joinSection" class="card hidden">
-            <h2>Unirse a un Stream</h2>
-            <div class="input-group">
-                <input type="text" id="streamKeyInput" placeholder="Ingresa la Stream Key" />
+            <h2>Dashboard de Viewer</h2>
+            
+            <!-- Streams activos de usuarios suscritos -->
+            <div class="info-box">
+                <h3>🎬 Streams Activos de tus Suscripciones</h3>
+                <div id="subscribedStreams" style="margin-top: 15px;">
+                    <p style="color: #9370db;">No hay streams activos de usuarios a los que estás suscrito</p>
+                </div>
             </div>
-            <button class="btn-primary" onclick="joinStream()">Unirse</button>
+
+            <!-- Unirse manualmente a un stream -->
+            <div style="margin-top: 20px;">
+                <h3>O únete manualmente con Stream Key:</h3>
+                <div class="input-group">
+                    <input type="text" id="streamKeyInput" placeholder="Ingresa la Stream Key" />
+                </div>
+                <button class="btn-primary" onclick="joinStream()">Unirse</button>
+            </div>
+
+            <!-- Lista de todos los usuarios -->
+            <div style="margin-top: 30px;">
+                <h3>👥 Todos los Usuarios</h3>
+                <div id="usersList" style="margin-top: 15px;">
+                    <p style="color: #9370db;">Cargando usuarios...</p>
+                </div>
+            </div>
         </div>
 
         <!-- Stream Viewing Section -->
@@ -432,6 +579,9 @@
         let peerConnection;
         let streamKey = null;
         let userId = null;
+        let currentUser = null;
+        let allUsers = [];
+        let subscribedStreams = [];
 
         const configuration = {
             iceServers: [
@@ -456,8 +606,13 @@
 
             socket.on('user:registered', (data) => {
                 userId = data.user.id;
+                currentUser = data.user;
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('joinSection').classList.remove('hidden');
+                
+                // Cargar lista de usuarios y suscripciones
+                loadUsersList();
+                loadSubscribedStreams();
             });
 
             socket.on('stream:joined', async (data) => {
@@ -495,6 +650,37 @@
             socket.on('stream:ended', () => {
                 alert('El stream ha finalizado');
                 location.reload();
+            });
+
+            // Eventos de suscripciones
+            socket.on('user:subscribed', (data) => {
+                console.log('Suscrito a:', data.targetUsername);
+                loadUsersList();
+            });
+
+            socket.on('user:unsubscribed', (data) => {
+                console.log('Desuscrito de:', data.targetUsername);
+                loadUsersList();
+            });
+
+            socket.on('users:list', (data) => {
+                allUsers = data.users;
+                renderUsersList();
+                updateSubscribedStreams();
+            });
+
+            socket.on('subscriptions:list', (data) => {
+                console.log('Suscripciones:', data.subscriptions);
+            });
+
+            // Notificación cuando un streamer suscrito inicia stream
+            socket.on('stream:notification', (data) => {
+                if (data.type === 'started') {
+                    showStreamNotification(data);
+                } else if (data.type === 'ended') {
+                    showStreamEndedNotification(data);
+                }
+                loadSubscribedStreams();
             });
 
             socket.on('disconnect', () => {
@@ -605,6 +791,11 @@
         }
 
         function leaveStream() {
+            // Notify server that viewer is leaving the stream
+            if (streamKey) {
+                socket.emit('stream:leave', { streamKey: streamKey });
+            }
+            
             if (peerConnection) {
                 peerConnection.close();
             }
@@ -653,6 +844,131 @@
         document.getElementById('chatInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
+
+        // Funciones de suscripciones
+        function loadUsersList() {
+            socket.emit('users:get');
+        }
+
+        function loadSubscribedStreams() {
+            socket.emit('subscriptions:get');
+        }
+
+        function renderUsersList() {
+            const container = document.getElementById('usersList');
+            
+            if (allUsers.length === 0) {
+                container.innerHTML = '<p style="color: #9370db;">No hay otros usuarios conectados</p>';
+                return;
+            }
+
+            container.innerHTML = allUsers.map(user => `
+                <div class="user-item">
+                    <div class="user-info">
+                        <div class="user-name">${user.username}</div>
+                        <div class="user-status ${user.streamStatus === 'active' ? 'streaming' : ''}">
+                            ${user.streamStatus === 'active' ? '🔴 En vivo' : '⚫ Desconectado'}
+                            ${user.role === 'STREAMER' ? '📹' : '👤'}
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <button 
+                            class="btn-subscribe ${user.isSubscribed ? 'subscribed' : ''}"
+                            onclick="toggleSubscription('${user.userId}', ${user.isSubscribed})">
+                            ${user.isSubscribed ? '✓ Suscrito' : '+ Suscribirse'}
+                        </button>
+                        ${user.streamStatus === 'active' ? `
+                            <button 
+                                class="btn-join-stream"
+                                onclick="joinStreamByKey('${user.currentStreamKey}')">
+                                Ver Stream
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateSubscribedStreams() {
+            const subscribedUsers = allUsers.filter(u => u.isSubscribed && u.streamStatus === 'active');
+            const container = document.getElementById('subscribedStreams');
+            
+            if (subscribedUsers.length === 0) {
+                container.innerHTML = '<p style="color: #9370db;">No hay streams activos de usuarios a los que estás suscrito</p>';
+                return;
+            }
+
+            container.innerHTML = subscribedUsers.map(user => `
+                <div class="stream-card" onclick="joinStreamByKey('${user.currentStreamKey}')">
+                    <h4>
+                        <span class="live-indicator">🔴 EN VIVO</span>
+                        ${user.username}
+                    </h4>
+                    <p style="color: #9370db;">Click para unirte al stream</p>
+                </div>
+            `).join('');
+        }
+
+        function toggleSubscription(targetUserId, isCurrentlySubscribed) {
+            if (isCurrentlySubscribed) {
+                socket.emit('user:unsubscribe', { targetUserId });
+            } else {
+                socket.emit('user:subscribe', { targetUserId });
+            }
+        }
+
+        function joinStreamByKey(key) {
+            document.getElementById('streamKeyInput').value = key;
+            joinStream();
+        }
+
+        function showStreamNotification(data) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <h4>🔴 ${data.streamerUsername} está en vivo!</h4>
+                <p>Un streamer al que estás suscrito ha iniciado un stream</p>
+                <div class="notification-actions">
+                    <button class="btn-primary" onclick="joinStreamByKey('${data.streamKey}'); this.parentElement.parentElement.remove();">
+                        Ver Ahora
+                    </button>
+                    <button class="btn-info" onclick="this.parentElement.parentElement.remove();">
+                        Más tarde
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+
+            // Auto-remover después de 10 segundos
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 10000);
+        }
+
+        function showStreamEndedNotification(data) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.borderColor = '#9370db';
+            notification.innerHTML = `
+                <h4>⏹️ ${data.streamerUsername} finalizó su stream</h4>
+                <p>El stream al que estabas suscrito ha terminado</p>
+                <div class="notification-actions">
+                    <button class="btn-info" onclick="this.parentElement.parentElement.remove();">
+                        Entendido
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+
+            // Auto-remover después de 8 segundos
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 8000);
+        }
     </script>
 </body>
 </html>

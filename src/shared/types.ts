@@ -25,6 +25,7 @@ export interface IUser {
   role: UserRole;
   socketId?: string;
   createdAt: Date;
+  subscriptions?: string[]; // IDs de usuarios a los que está suscrito
 }
 
 export interface IStream {
@@ -69,4 +70,29 @@ export interface IWebRTCSignal {
   from: string;
   to: string;
   streamKey?: string;
+}
+
+export interface IStreamNotification {
+  type: 'started' | 'ended';
+  streamerId: string;
+  streamerUsername: string;
+  streamId: string;
+  streamKey: string;
+  startedAt?: Date;
+  endedAt?: Date;
+}
+
+export interface IUserSubscription {
+  userId: string;
+  username: string;
+  role: UserRole;
+  isSubscribed: boolean;
+  streamStatus?: 'active' | 'inactive';
+  currentStreamKey?: string;
+}
+
+export interface ISubscription {
+  followerId: string;
+  followingId: string;
+  createdAt: Date;
 }

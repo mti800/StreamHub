@@ -9,11 +9,12 @@ import path from 'path';
 import { StreamManager } from './StreamManager';
 import { UserManager } from './UserManager';
 import { StreamDistributor } from './StreamDistributor';
+import { SubscriptionManager } from './SubscriptionManager';
 import { eventBus } from '../pubsub/EventBus';
 import { Publisher } from '../pubsub/Publisher';
 import { Events } from '../shared/events';
 import { MessageFactory } from '../factories/MessageFactory';
-import { UserRole, IWebRTCSignal } from '../shared/types';
+import { UserRole, IWebRTCSignal, IUserSubscription } from '../shared/types';
 
 const PORT = process.env.PORT || 3000;
 
@@ -24,7 +25,10 @@ class StreamHubServer {
   private streamManager: StreamManager;
   private userManager: UserManager;
   private streamDistributor: StreamDistributor;
+  private subscriptionManager: SubscriptionManager;
   private publisher: Publisher;
+  // Map para trackear qué stream está viendo cada socket
+  private viewerToStream: Map<string, string>; // socketId -> streamKey
 
   constructor() {
     this.app = express();
@@ -39,7 +43,9 @@ class StreamHubServer {
     this.streamManager = new StreamManager();
     this.userManager = new UserManager();
     this.streamDistributor = new StreamDistributor(this.io);
+    this.subscriptionManager = new SubscriptionManager();
     this.publisher = new Publisher(eventBus);
+    this.viewerToStream = new Map();
 
     this.setupRoutes();
     this.setupSocketIO();
@@ -59,10 +65,15 @@ class StreamHubServer {
     });
 
     this.app.get('/health', (req, res) => {
+      const userStats = this.userManager.getStats();
       res.json({
         status: 'ok',
         activeStreams: this.streamManager.getActiveStreams().length,
-        connectedUsers: this.userManager.getAllUsers().length
+        users: {
+          total: userStats.total,
+          connected: userStats.connected,
+          disconnected: userStats.disconnected
+        }
       });
     });
 
@@ -85,9 +96,12 @@ class StreamHubServer {
       this.handleStreamStart(socket);
       this.handleStreamEnd(socket);
       this.handleStreamData(socket);
+      this.handleStreamLeave(socket);
       this.handleWebRTCSignaling(socket);
       this.handleChatMessages(socket);
       this.handleReactions(socket);
+      this.handleSubscriptions(socket);
+      this.handleUsersList(socket);
       this.handleDisconnect(socket);
     });
   }
@@ -174,6 +188,9 @@ class StreamHubServer {
         // Registrar viewer en el distributor
         this.streamDistributor.addViewer(data.streamKey, socket.id);
         
+        // Trackear qué stream está viendo este socket
+        this.viewerToStream.set(socket.id, stream.streamKey);
+        
         socket.emit(Events.STREAM_JOINED, { stream });
         
         // Notificar a todos en el stream sobre el nuevo viewer
@@ -222,8 +239,36 @@ class StreamHubServer {
 
         this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_STARTED, { stream });
         
-        console.log(`[Server] Stream iniciado: ${stream.streamKey}`);
-        this.publisher.publish(Events.STREAM_STARTED, { stream });
+        // Usar Pub/Sub para notificar a suscriptores
+        const streamer = this.userManager.getUser(stream.streamerId);
+        if (streamer) {
+          const followers = this.subscriptionManager.getFollowers(stream.streamerId);
+          
+          // Publicar evento de stream iniciado con información de suscriptores
+          this.publisher.publish(Events.STREAM_STARTED, { 
+            stream, 
+            streamer,
+            followerCount: followers.length
+          });
+          
+          // Enviar notificación a cada suscriptor conectado
+          followers.forEach(followerId => {
+            const follower = this.userManager.getUser(followerId);
+            if (follower && follower.socketId) {
+              this.io.to(follower.socketId).emit(Events.STREAM_NOTIFICATION, {
+                type: 'started',
+                streamerId: stream.streamerId,
+                streamerUsername: streamer.username,
+                streamId: stream.id,
+                streamKey: stream.streamKey,
+                startedAt: stream.startedAt
+              });
+            }
+          });
+          
+          console.log(`[Server] Stream iniciado: ${stream.streamKey}`);
+          console.log(`[Server] Notificados ${followers.length} suscriptores`);
+        }
       } catch (error) {
         socket.emit(Events.STREAM_ERROR, { 
           message: 'Error al iniciar stream',
@@ -248,19 +293,112 @@ class StreamHubServer {
 
         this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_ENDED, { stream });
         
+        // Usar Pub/Sub para notificar a suscriptores que el stream finalizó
+        const streamer = this.userManager.getUser(stream.streamerId);
+        if (streamer) {
+          const followers = this.subscriptionManager.getFollowers(stream.streamerId);
+          
+          // Publicar evento de stream finalizado
+          this.publisher.publish(Events.STREAM_ENDED, { 
+            stream, 
+            streamer,
+            followerCount: followers.length
+          });
+          
+          // Enviar notificación a cada suscriptor conectado
+          followers.forEach(followerId => {
+            const follower = this.userManager.getUser(followerId);
+            if (follower && follower.socketId) {
+              this.io.to(follower.socketId).emit(Events.STREAM_NOTIFICATION, {
+                type: 'ended',
+                streamerId: stream.streamerId,
+                streamerUsername: streamer.username,
+                streamId: stream.id,
+                streamKey: stream.streamKey,
+                endedAt: stream.endedAt
+              });
+            }
+          });
+          
+          console.log(`[Server] Stream finalizado: ${stream.streamKey}`);
+          console.log(`[Server] Notificados ${followers.length} suscriptores de la finalización`);
+        }
+        
         // Desregistrar stream del distributor
         this.streamDistributor.unregisterStream(stream.streamKey);
         
+        // Limpiar viewers de este stream del tracking
+        this.viewerToStream.forEach((streamKey, socketId) => {
+          if (streamKey === stream.streamKey) {
+            this.viewerToStream.delete(socketId);
+          }
+        });
+        
         // Desconectar a todos del room
         this.io.in(`stream:${stream.streamKey}`).socketsLeave(`stream:${stream.streamKey}`);
-        
-        console.log(`[Server] Stream finalizado: ${stream.streamKey}`);
-        this.publisher.publish(Events.STREAM_ENDED, { stream });
       } catch (error) {
         socket.emit(Events.STREAM_ERROR, { 
           message: 'Error al finalizar stream',
           error: error instanceof Error ? error.message : 'Error desconocido'
         });
+      }
+    });
+  }
+
+  /**
+   * Maneja cuando un viewer sale de un stream
+   */
+  private handleStreamLeave(socket: Socket): void {
+    socket.on(Events.STREAM_LEAVE, (data: { streamKey: string }) => {
+      try {
+        const user = this.userManager.getUserBySocket(socket.id);
+        
+        if (!user) {
+          return;
+        }
+
+        const stream = this.streamManager.getStreamByKey(data.streamKey);
+        
+        if (!stream) {
+          return;
+        }
+
+        // Decrementar contador de viewers
+        const viewerCount = this.streamManager.removeViewer(data.streamKey);
+        
+        // Remover del distributor
+        this.streamDistributor.removeViewer(data.streamKey, socket.id);
+        
+        // Remover del tracking
+        this.viewerToStream.delete(socket.id);
+        
+        // Salir del room
+        socket.leave(`stream:${stream.streamKey}`);
+        
+        // Notificar a todos en el stream
+        this.io.to(`stream:${stream.streamKey}`).emit(Events.VIEWER_LEFT, {
+          username: user.username,
+          viewerCount
+        });
+        
+        this.io.to(`stream:${stream.streamKey}`).emit(Events.VIEWER_COUNT_UPDATE, {
+          viewerCount
+        });
+
+        console.log(`[Server] ${user.username} salió del stream ${stream.streamKey}`);
+        
+        // Mensaje de sistema en el chat
+        const systemMessage = MessageFactory.createSystemMessage(
+          stream.id,
+          `${user.username} salió del stream`
+        );
+        this.io.to(`stream:${stream.streamKey}`).emit(Events.CHAT_MESSAGE_BROADCAST, {
+          message: systemMessage
+        });
+
+        this.publisher.publish(Events.VIEWER_LEFT, { stream, user, viewerCount });
+      } catch (error) {
+        console.error('[Server] Error al salir del stream:', error);
       }
     });
   }
@@ -398,6 +536,146 @@ class StreamHubServer {
   }
 
   /**
+   * Maneja suscripciones de usuarios
+   */
+  private handleSubscriptions(socket: Socket): void {
+    // Suscribirse a un usuario
+    socket.on(Events.USER_SUBSCRIBE, (data: { targetUserId: string }) => {
+      try {
+        const user = this.userManager.getUserBySocket(socket.id);
+        
+        if (!user) {
+          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          return;
+        }
+
+        const targetUser = this.userManager.getUser(data.targetUserId);
+        
+        if (!targetUser) {
+          socket.emit(Events.STREAM_ERROR, { message: 'Usuario objetivo no encontrado' });
+          return;
+        }
+
+        const success = this.subscriptionManager.subscribe(user.id, data.targetUserId);
+        
+        if (success) {
+          socket.emit(Events.USER_SUBSCRIBED, {
+            targetUserId: data.targetUserId,
+            targetUsername: targetUser.username
+          });
+          
+          console.log(`[Server] ${user.username} se suscribió a ${targetUser.username}`);
+        } else {
+          socket.emit(Events.STREAM_ERROR, { 
+            message: 'No se pudo completar la suscripción' 
+          });
+        }
+      } catch (error) {
+        socket.emit(Events.STREAM_ERROR, { 
+          message: 'Error al suscribirse',
+          error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+      }
+    });
+
+    // Desuscribirse de un usuario
+    socket.on(Events.USER_UNSUBSCRIBE, (data: { targetUserId: string }) => {
+      try {
+        const user = this.userManager.getUserBySocket(socket.id);
+        
+        if (!user) {
+          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          return;
+        }
+
+        const success = this.subscriptionManager.unsubscribe(user.id, data.targetUserId);
+        
+        if (success) {
+          const targetUser = this.userManager.getUser(data.targetUserId);
+          socket.emit(Events.USER_UNSUBSCRIBED, {
+            targetUserId: data.targetUserId,
+            targetUsername: targetUser?.username
+          });
+          
+          console.log(`[Server] ${user.username} se desuscribió de ${targetUser?.username}`);
+        }
+      } catch (error) {
+        socket.emit(Events.STREAM_ERROR, { 
+          message: 'Error al desuscribirse',
+          error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+      }
+    });
+
+    // Obtener lista de suscripciones
+    socket.on(Events.SUBSCRIPTIONS_GET, () => {
+      try {
+        const user = this.userManager.getUserBySocket(socket.id);
+        
+        if (!user) {
+          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          return;
+        }
+
+        const subscriptionIds = this.subscriptionManager.getSubscriptions(user.id);
+        const subscriptions = subscriptionIds
+          .map(id => this.userManager.getUser(id))
+          .filter(u => u !== undefined);
+
+        socket.emit(Events.SUBSCRIPTIONS_LIST, { subscriptions });
+      } catch (error) {
+        socket.emit(Events.STREAM_ERROR, { 
+          message: 'Error al obtener suscripciones',
+          error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+      }
+    });
+  }
+
+  /**
+   * Maneja solicitud de lista de usuarios
+   */
+  private handleUsersList(socket: Socket): void {
+    socket.on(Events.USERS_GET, () => {
+      try {
+        const currentUser = this.userManager.getUserBySocket(socket.id);
+        
+        if (!currentUser) {
+          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          return;
+        }
+
+        const allUsers = this.userManager.getAllUsers();
+        const activeStreams = this.streamManager.getActiveStreams();
+        const subscriptions = this.subscriptionManager.getSubscriptions(currentUser.id);
+
+        // Crear lista de usuarios con información de suscripción y estado de stream
+        const usersList: IUserSubscription[] = allUsers
+          .filter(u => u.id !== currentUser.id) // Excluir al usuario actual
+          .map(user => {
+            const activeStream = activeStreams.find(s => s.streamerId === user.id);
+            
+            return {
+              userId: user.id,
+              username: user.username,
+              role: user.role,
+              isSubscribed: subscriptions.includes(user.id),
+              streamStatus: activeStream ? 'active' : 'inactive',
+              currentStreamKey: activeStream?.streamKey
+            } as IUserSubscription;
+          });
+
+        socket.emit(Events.USERS_LIST, { users: usersList });
+      } catch (error) {
+        socket.emit(Events.STREAM_ERROR, { 
+          message: 'Error al obtener usuarios',
+          error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+      }
+    });
+  }
+
+  /**
    * Maneja desconexiones
    */
   private handleDisconnect(socket: Socket): void {
@@ -413,20 +691,50 @@ class StreamHubServer {
           if (stream) {
             this.streamManager.endStream(stream.streamKey);
             this.streamDistributor.unregisterStream(stream.streamKey);
+            
+            // Limpiar viewers de este stream del tracking
+            this.viewerToStream.forEach((streamKey, socketId) => {
+              if (streamKey === stream.streamKey) {
+                this.viewerToStream.delete(socketId);
+              }
+            });
+            
             this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_ENDED, { 
               stream,
               reason: 'El streamer se desconectó'
             });
           }
         } else {
-          // Si es viewer, removerlo de todos los streams
-          const activeStreams = this.streamDistributor.getActiveStreams();
-          activeStreams.forEach(streamKey => {
+          // Si es viewer, verificar si estaba viendo un stream
+          const streamKey = this.viewerToStream.get(socket.id);
+          
+          if (streamKey) {
+            // Decrementar contador de viewers
+            const viewerCount = this.streamManager.removeViewer(streamKey);
+            
+            // Remover del distributor
             this.streamDistributor.removeViewer(streamKey, socket.id);
-          });
+            
+            // Remover del tracking
+            this.viewerToStream.delete(socket.id);
+            
+            // Notificar actualización de contador
+            this.io.to(`stream:${streamKey}`).emit(Events.VIEWER_COUNT_UPDATE, {
+              viewerCount
+            });
+            
+            this.io.to(`stream:${streamKey}`).emit(Events.VIEWER_LEFT, {
+              username: user.username,
+              viewerCount
+            });
+            
+            console.log(`[Server] Viewer ${user.username} removido del stream ${streamKey}, viewers restantes: ${viewerCount}`);
+          }
         }
 
-        this.userManager.removeUser(user.id);
+        // Desconectar usuario pero mantenerlo en el sistema (persistencia)
+        this.userManager.disconnectUser(user.id);
+        
         this.publisher.publish(Events.DISCONNECT, { user });
       }
     });
