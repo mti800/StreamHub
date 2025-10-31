@@ -1,6 +1,6 @@
 # StreamHub - Sistema de Streaming con Chat en Tiempo Real
 
-Sistema de streaming unidireccional usando **Node.js**, **TypeScript**, **Socket.IO** y patrones de diseño **Factory**, **Builder** y **Pub/Sub**.
+Sistema de streaming unidireccional usando **Node.js**, **TypeScript**, **Socket.IO** y patrones de diseño **Factory**, **Strategy** y **Pub/Sub**.
 
 ## 🚀 Inicio Rápido
 
@@ -11,75 +11,68 @@ npm install
 
 ## ▶️ Ejecución
 
-### Opción 1: Interfaz Web (Recomendado - con video real)
-
-1. **Inicia el servidor:**
+### Inicia el servidor
 ```powershell
-npm run dev:server
+npm start
+# o alternativamente:
+npm run dev
 ```
 
-2. **Abre tu navegador:**
-   - Streamer: http://localhost:3000/streamer.html
-   - Viewer: http://localhost:3000/viewer.html
+### Abre tu navegador
+El servidor estará disponible en `http://localhost:3000`
 
-3. **Como Streamer:**
-   - Ingresa tu nombre
-   - Haz clic en "Crear Stream"
-   - Permite acceso a cámara y micrófono
-   - **Copia la Stream Key**
-   - Haz clic en "Iniciar Transmisión"
+- **Streamer**: http://localhost:3000/streamer.html
+- **Viewer**: http://localhost:3000/viewer.html
+- **Home**: http://localhost:3000
 
-4. **Como Viewer:**
-   - Ingresa tu nombre
-   - **Pega la Stream Key**
-   - Haz clic en "Unirse"
-   - ¡Ve el stream en vivo!
+### Cómo usar
 
-### Opción 2: Cliente CLI (Terminal - sin video)
+**Como Streamer:**
+1. Abre http://localhost:3000/streamer.html
+2. Ingresa tu nombre
+3. Haz clic en "Crear Stream"
+4. Permite acceso a cámara y micrófono
+5. **Copia la Stream Key**
+6. Haz clic en "Iniciar Transmisión"
+7. ¡Comparte la Stream Key con tus viewers!
 
-**Terminal 1 - Servidor:**
-```powershell
-npm run dev:server
-```
+**Como Viewer:**
+1. Abre http://localhost:3000/viewer.html
+2. Ingresa tu nombre
+3. **Pega la Stream Key**
+4. Haz clic en "Unirse"
+5. ¡Disfruta del stream en vivo!
 
-**Terminal 2 - Cliente (Streamer):**
-```powershell
-npm run dev:client
-# Elige: 1. Transmitir (Streamer)
-```
+### Cliente CLI (Opcional - Solo para testing)
 
-**Terminal 3 - Cliente (Viewer):**
+Si quieres probar el sistema desde la terminal:
+
 ```powershell
 npm run dev:client
-# Elige: 2. Ver stream (Viewer)
 ```
 
-### Uso Básico
+**Nota**: El cliente CLI es solo para testing. Para la experiencia completa con video, usa el navegador.
 
-**Interfaz Web:**
-1. Abre http://localhost:3000
-2. Elige "Soy Streamer" o "Soy Viewer"
-3. Comparte/ingresa la Stream Key
-4. ¡Disfruta del video en vivo!
+## 📋 Comandos Disponibles
 
-**Terminal CLI:**
-1. **Streamer**: Ingresa nombre → Crea stream (`s`) → **Copia la Stream Key** → Inicia (`s`)
-2. **Viewer**: Ingresa nombre → **Pega la Stream Key** → ¡Conectado!
-3. **Chat**: Usa `/chat <mensaje>` en ambos
-4. **Reacciones**: Usa `/react <emoji>` en viewer (ej: `/react 👍`)
+```powershell
+npm start          # Inicia el servidor (alias de npm run dev)
+npm run dev        # Inicia el servidor en modo desarrollo
+npm run build      # Compila TypeScript a JavaScript
+npm run dev:client # Cliente CLI para testing (opcional)
+npm run clean      # Limpia los archivos compilados
+```
+
+
+---
 
 ## 📋 Tabla de Contenidos
 
 - [Arquitectura](#arquitectura)
 - [Patrones de Diseño](#patrones-de-diseño)
 - [Estructura del Proyecto](#estructura-del-proyecto)
-- [Comandos Disponibles](#comandos-disponibles)
 - [API de Eventos](#api-de-eventos)
-- [Ejemplos de Uso](#ejemplos-de-uso)
-
----
-
-## 🏗️ Arquitectura
+- [Comandos de Chat](#comandos-de-chat)
 
 ### Componentes Principales
 
@@ -109,10 +102,10 @@ npm run dev:client
 │  └──────────────────────────────────────────────────┘   │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │    FACTORIES & BUILDERS (Creación de Objetos)    │   │
+│  │       FACTORIES (Creación de Objetos)            │   │
 │  │  - UserFactory: Crea usuarios (Streamer/Viewer)  │   │
-│  │  - StreamBuilder: Construye streams              │   │
-│  │  - MessageFactory: Crea mensajes y reacciones    │   │
+│  │  - StreamFactory: Crea streams                   │   │
+│  │  - MessageFactory: Crea mensajes (con Strategy)  │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                          │
 │  Funciones:                                              │
@@ -147,16 +140,23 @@ npm run dev:client
 ## 🎨 Patrones de Diseño
 
 ### Factory Pattern
-Crea usuarios y mensajes de forma consistente:
+Crea usuarios, streams y mensajes de forma consistente:
 ```typescript
 UserFactory.createStreamer('John', socketId);
+StreamFactory.createStream(streamerId);
 MessageFactory.createChatMessage(streamId, userId, 'Hola!');
 ```
 
-### Builder Pattern
-Construye streams con Stream Keys únicas:
+### Strategy Pattern
+Permite añadir nuevos tipos de mensajes fácilmente:
 ```typescript
-new StreamBuilder().withStreamer(userId).markAsStarted().build();
+// El MessageFactory usa estrategias internamente
+MessageFactory.createChatMessage(...);     // Usa ChatMessageStrategy
+MessageFactory.createSystemMessage(...);   // Usa SystemMessageStrategy
+MessageFactory.createReaction(...);        // Usa ReactionMessageStrategy
+
+// Se pueden cambiar las estrategias si es necesario
+MessageFactory.setChatStrategy(new CustomChatStrategy());
 ```
 
 ### Publisher-Subscriber Pattern
@@ -168,7 +168,9 @@ subscriber.subscribe(Events.STREAM_CREATED, callback);
 
 ---
 
-## 📁 Estructura del Proyecto
+---
+
+## 🏗️ Arquitectura
 
 ```
 src/
@@ -183,15 +185,17 @@ src/
 
 ## � Comandos Disponibles
 
-### Streamer
-- `/chat <mensaje>` - Enviar mensaje al chat
-- `/viewers` - Ver número de viewers
+### En cliente CLI (si lo usas)
+
+**Streamer:**
+- `/chat <mensaje>` - Enviar mensaje
+- `/viewers` - Ver cantidad de viewers
 - `/end` - Finalizar stream
 
-### Viewer
-- `/chat <mensaje>` - Enviar mensaje al chat
-- `/react <emoji>` - Enviar reacción (👍 ❤️ 🔥 😂)
-- `/viewers` - Ver número de viewers
+**Viewer:**
+- `/chat <mensaje>` - Enviar mensaje
+- `/react <emoji>` - Enviar reacción
+- `/viewers` - Ver cantidad de viewers
 - `/leave` - Salir del stream
 
 ---
@@ -213,49 +217,23 @@ src/
 
 ---
 
-## 📝 Ejemplos de Uso
-
-### Sesión Básica
-
-**Streamer:**
-```
-> /chat Bienvenidos al stream!
-💬 Tú: Bienvenidos al stream!
-```
-
-**Viewer:**
-```
-> /chat Hola!
-💬 Tú: Hola!
-
-> /react 👍
-👍 Reacción enviada
-```
-
-### Múltiples Viewers
-
-- Abre varias terminales de viewer
-- Todos usan la misma Stream Key
-- El chat es compartido entre todos
-- Contador de viewers se actualiza automáticamente
-
----
-
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### "Stream no encontrado"
-- Verifica que la Stream Key sea correcta (32 caracteres)
-- Confirma que el streamer haya iniciado el stream
+- Verifica que la Stream Key sea correcta
+- Confirma que el streamer haya iniciado la transmisión
 
 ### "Puerto en uso"
 ```powershell
+# Cambia el puerto
 $env:PORT=3001
-npm run dev:server
+npm start
 ```
 
-### No veo mensajes
-- Asegúrate de estar en el mismo stream
-- Verifica la Stream Key
+### Problemas con la cámara
+- Asegúrate de dar permisos al navegador
+- Verifica que ninguna otra app esté usando la cámara
+- Prueba en http://localhost:3000 (no https)
 
 ---
 

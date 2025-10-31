@@ -4,11 +4,11 @@
   "description": "Sistema de streaming unidireccional con chat en tiempo real usando WebRTC y Pub/Sub",
   "main": "dist/server/index.js",
   "scripts": {
-    "build": "tsc",
+    "start": "npm run dev",
+    "dev": "ts-node src/server/index.ts",
     "dev:server": "ts-node src/server/index.ts",
     "dev:client": "ts-node src/clients/client.ts",
-    "start:server": "node dist/server/index.js",
-    "start:client": "node dist/clients/client.js",
+    "build": "tsc",
     "clean": "rmdir /s /q dist 2>nul || echo Cleaned"
   },
   "keywords": [

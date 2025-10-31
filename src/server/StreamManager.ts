@@ -3,7 +3,7 @@
  */
 
 import { IStream, StreamStatus, IStreamConfig } from '../shared/types';
-import { StreamBuilder } from '../factories/StreamBuilder';
+import { StreamFactory } from '../factories/StreamFactory';
 
 export class StreamManager {
   private streams: Map<string, IStream>;
@@ -29,7 +29,7 @@ export class StreamManager {
       }
     }
 
-    const stream = StreamBuilder.fromConfig(config);
+    const stream = StreamFactory.fromConfig(config);
     
     this.streams.set(stream.id, stream);
     this.streamKeyToId.set(stream.streamKey, stream.id);
@@ -68,15 +68,11 @@ export class StreamManager {
     const stream = this.getStreamByKey(streamKey);
     if (!stream) return undefined;
 
-    const updatedStream = new StreamBuilder()
-      .withStreamer(stream.streamerId)
-      .markAsStarted()
-      .build();
-
-    updatedStream.id = stream.id;
-    updatedStream.streamKey = stream.streamKey;
-    updatedStream.createdAt = stream.createdAt;
-    updatedStream.viewerCount = stream.viewerCount;
+    const updatedStream = {
+      ...stream,
+      status: StreamStatus.ACTIVE,
+      startedAt: new Date()
+    };
 
     this.streams.set(stream.id, updatedStream);
     return updatedStream;
