@@ -397,7 +397,7 @@
             <div class="main-content">
                 <div class="video-section">
                     <div class="video-container">
-                        <video id="remoteVideo" autoplay playsinline controls></video>
+                        <video id="remoteVideo" autoplay playsinline controls muted></video>
                     </div>
 
                     <h3>Reacciones Rápidas</h3>
@@ -515,8 +515,30 @@
             peerConnection = new RTCPeerConnection(configuration);
 
             peerConnection.ontrack = (event) => {
-                console.log('Recibiendo stream de video');
-                document.getElementById('remoteVideo').srcObject = event.streams[0];
+                console.log('📡 Recibiendo track:', event.track.kind, event.track.label);
+                const videoElement = document.getElementById('remoteVideo');
+                
+                if (!videoElement.srcObject) {
+                    videoElement.srcObject = event.streams[0];
+                }
+                
+                // Verificar tracks de audio
+                const audioTracks = event.streams[0].getAudioTracks();
+                console.log('🔊 Audio tracks recibidos:', audioTracks.length);
+                audioTracks.forEach(track => {
+                    console.log('  - Track:', track.label, 'enabled:', track.enabled);
+                });
+                
+                // Intentar activar el audio automáticamente
+                videoElement.muted = false;
+                videoElement.volume = 1.0;
+                
+                // Si falla el autoplay, pedir al usuario que haga click
+                videoElement.play().catch(error => {
+                    console.log('⚠️ Autoplay bloqueado, se requiere interacción del usuario');
+                    // Mostrar un overlay para activar el audio
+                    showAudioActivationOverlay(videoElement);
+                });
             };
 
             peerConnection.onicecandidate = (event) => {
@@ -532,8 +554,14 @@
             };
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.data));
-            const answer = await peerConnection.createAnswer();
+            
+            const answer = await peerConnection.createAnswer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
             await peerConnection.setLocalDescription(answer);
+
+            console.log('✅ Answer creado');
 
             socket.emit('webrtc:answer', {
                 type: 'answer',
@@ -581,6 +609,45 @@
                 peerConnection.close();
             }
             location.reload();
+        }
+
+        function showAudioActivationOverlay(videoElement) {
+            // Crear overlay si no existe
+            let overlay = document.getElementById('audioOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'audioOverlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999;
+                    cursor: pointer;
+                `;
+                overlay.innerHTML = `
+                    <div style="text-align: center; color: #ffa500;">
+                        <h2 style="font-size: 48px; margin-bottom: 20px;">🔊</h2>
+                        <h2 style="color: #ff8c00;">Haz click para activar el audio</h2>
+                        <p style="color: #9370db; margin-top: 10px;">El navegador requiere interacción del usuario</p>
+                    </div>
+                `;
+                overlay.onclick = () => {
+                    videoElement.muted = false;
+                    videoElement.play().then(() => {
+                        overlay.remove();
+                        console.log('Audio activado correctamente');
+                    }).catch(err => {
+                        console.error('Error al activar audio:', err);
+                    });
+                };
+                document.body.appendChild(overlay);
+            }
         }
 
         document.getElementById('chatInput').addEventListener('keypress', (e) => {

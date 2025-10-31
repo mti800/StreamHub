@@ -503,10 +503,25 @@
         async function initCamera() {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 1280, height: 720 },
-                    audio: true
+                    video: { 
+                        width: 1300, 
+                        height: 720,
+                        frameRate: 30
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 48000
+                    }
                 });
-                document.getElementById('localVideo').srcObject = localStream;
+                const videoElement = document.getElementById('localVideo');
+                videoElement.srcObject = localStream;
+                videoElement.muted = true; // Mutear el preview local para evitar feedback
+                
+                console.log('✅ Cámara y micrófono iniciados correctamente');
+                console.log('Audio tracks:', localStream.getAudioTracks().length);
+                console.log('Video tracks:', localStream.getVideoTracks().length);
             } catch (error) {
                 console.error('Error al acceder a la cámara:', error);
                 alert('No se pudo acceder a la cámara: ' + error.message);
@@ -532,7 +547,9 @@
             const pc = new RTCPeerConnection(configuration);
             peerConnections.set(socketId, pc);
 
+            // Agregar todos los tracks (video y audio) al peer connection
             localStream.getTracks().forEach(track => {
+                console.log(`Agregando track: ${track.kind} (${track.label})`);
                 pc.addTrack(track, localStream);
             });
 
@@ -548,8 +565,13 @@
                 }
             };
 
-            const offer = await pc.createOffer();
+            const offer = await pc.createOffer({
+                offerToReceiveAudio: false,
+                offerToReceiveVideo: false
+            });
             await pc.setLocalDescription(offer);
+
+            console.log('✅ Offer creado con audio:', offer.sdp.includes('m=audio'));
 
             socket.emit('webrtc:offer', {
                 type: 'offer',

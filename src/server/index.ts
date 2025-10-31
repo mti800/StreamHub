@@ -8,6 +8,7 @@ import { Server, Socket } from 'socket.io';
 import path from 'path';
 import { StreamManager } from './StreamManager';
 import { UserManager } from './UserManager';
+import { StreamDistributor } from './StreamDistributor';
 import { eventBus } from '../pubsub/EventBus';
 import { Publisher } from '../pubsub/Publisher';
 import { Events } from '../shared/events';
@@ -22,6 +23,7 @@ class StreamHubServer {
   private io: Server;
   private streamManager: StreamManager;
   private userManager: UserManager;
+  private streamDistributor: StreamDistributor;
   private publisher: Publisher;
 
   constructor() {
@@ -36,6 +38,7 @@ class StreamHubServer {
 
     this.streamManager = new StreamManager();
     this.userManager = new UserManager();
+    this.streamDistributor = new StreamDistributor(this.io);
     this.publisher = new Publisher(eventBus);
 
     this.setupRoutes();
@@ -81,6 +84,7 @@ class StreamHubServer {
       this.handleStreamJoin(socket);
       this.handleStreamStart(socket);
       this.handleStreamEnd(socket);
+      this.handleStreamData(socket);
       this.handleWebRTCSignaling(socket);
       this.handleChatMessages(socket);
       this.handleReactions(socket);
@@ -126,6 +130,9 @@ class StreamHubServer {
 
         const stream = this.streamManager.createStream({ streamerId: user.id });
         
+        // Registrar stream en el distributor para multicast
+        this.streamDistributor.registerStream(stream.streamKey);
+        
         socket.join(`stream:${stream.streamKey}`);
         socket.emit(Events.STREAM_CREATED, { stream });
         
@@ -163,6 +170,9 @@ class StreamHubServer {
         socket.join(`stream:${stream.streamKey}`);
         
         const viewerCount = this.streamManager.addViewer(data.streamKey);
+        
+        // Registrar viewer en el distributor
+        this.streamDistributor.addViewer(data.streamKey, socket.id);
         
         socket.emit(Events.STREAM_JOINED, { stream });
         
@@ -238,6 +248,9 @@ class StreamHubServer {
 
         this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_ENDED, { stream });
         
+        // Desregistrar stream del distributor
+        this.streamDistributor.unregisterStream(stream.streamKey);
+        
         // Desconectar a todos del room
         this.io.in(`stream:${stream.streamKey}`).socketsLeave(`stream:${stream.streamKey}`);
         
@@ -248,6 +261,43 @@ class StreamHubServer {
           message: 'Error al finalizar stream',
           error: error instanceof Error ? error.message : 'Error desconocido'
         });
+      }
+    });
+  }
+
+  /**
+   * Maneja el envío de datos de streaming (Multicast)
+   */
+  private handleStreamData(socket: Socket): void {
+    socket.on(Events.STREAM_DATA_SEND, (data: { streamKey: string; data: string }) => {
+      try {
+        const user = this.userManager.getUserBySocket(socket.id);
+        const stream = this.streamManager.getStreamByKey(data.streamKey);
+        
+        if (!user || !stream) {
+          console.error('[Server] Usuario o stream no encontrado para envío de datos');
+          return;
+        }
+
+        // Verificar que el usuario es el streamer
+        if (user.id !== stream.streamerId) {
+          console.error('[Server] Solo el streamer puede enviar datos');
+          return;
+        }
+
+        // Distribuir datos usando multicast a todos los viewers
+        const viewersReached = this.streamDistributor.distributeStreamData(
+          data.streamKey,
+          data.data,
+          user.id
+        );
+
+        // Opcional: Log cada N frames para no saturar la consola
+        if (Math.random() < 0.01) { // ~1% de los frames
+          console.log(`[Server] Stream data distribuido a ${viewersReached} viewers en ${data.streamKey}`);
+        }
+      } catch (error) {
+        console.error('[Server] Error distribuyendo datos de stream:', error);
       }
     });
   }
@@ -362,11 +412,18 @@ class StreamHubServer {
           const stream = this.streamManager.getStreamByStreamer(user.id);
           if (stream) {
             this.streamManager.endStream(stream.streamKey);
+            this.streamDistributor.unregisterStream(stream.streamKey);
             this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_ENDED, { 
               stream,
               reason: 'El streamer se desconectó'
             });
           }
+        } else {
+          // Si es viewer, removerlo de todos los streams
+          const activeStreams = this.streamDistributor.getActiveStreams();
+          activeStreams.forEach(streamKey => {
+            this.streamDistributor.removeViewer(streamKey, socket.id);
+          });
         }
 
         this.userManager.removeUser(user.id);
@@ -381,6 +438,7 @@ class StreamHubServer {
   private setupCleanupTask(): void {
     setInterval(() => {
       this.streamManager.cleanup(24);
+      this.streamDistributor.cleanupEmptyStreams();
       console.log('[Server] Limpieza de streams antiguos completada');
     }, 60 * 60 * 1000); // Cada hora
   }

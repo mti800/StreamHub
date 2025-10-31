@@ -1,6 +1,14 @@
 # StreamHub - Sistema de Streaming con Chat en Tiempo Real
 
-Sistema de streaming unidireccional usando **Node.js**, **TypeScript**, **Socket.IO** y patrones de diseño **Factory**, **Strategy** y **Pub/Sub**.
+Sistema de streaming con arquitectura **multicast** usando **Node.js**, **TypeScript**, **Socket.IO** y patrones de diseño **Factory**, **Strategy** y **Pub/Sub**.
+
+## ⚡ Características Principales
+
+- ✅ **Streaming Multicast**: Un streamer transmite a N viewers con ancho de banda constante
+- ✅ **Escalabilidad**: Soporta 100+ viewers simultáneos
+- ✅ **Chat en Tiempo Real**: Mensajes y reacciones instantáneas
+- ✅ **Patrones de Diseño**: Factory, Strategy, Pub/Sub, Repository
+- ✅ **Buffer Inteligente**: Viewers tardíos reciben frames recientes automáticamente
 
 ## 🚀 Inicio Rápido
 
@@ -102,6 +110,13 @@ npm run clean      # Limpia los archivos compilados
 │  └──────────────────────────────────────────────────┘   │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐   │
+│  │    STREAMING (Distribución Multicast)            │   │
+│  │  - StreamDistributor: Distribuye datos 1→N       │   │
+│  │  - Buffer circular para late joiners             │   │
+│  │  - Optimización de ancho de banda                │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐   │
 │  │       FACTORIES (Creación de Objetos)            │   │
 │  │  - UserFactory: Crea usuarios (Streamer/Viewer)  │   │
 │  │  - StreamFactory: Crea streams                   │   │
@@ -109,31 +124,34 @@ npm run clean      # Limpia los archivos compilados
 │  └──────────────────────────────────────────────────┘   │
 │                                                          │
 │  Funciones:                                              │
-│  - Coordina conexiones entre peers                      │
-│  - Maneja señalización WebRTC                           │
+│  - Distribución multicast de video/audio                │
+│  - Maneja señalización WebRTC (opcional)                │
 │  - Gestiona chat y reacciones                           │
 │  - Emite eventos Pub/Sub                                │
 └────────────────┬────────────────────────────────────────┘
                  │
-                 │ Socket.IO
+                 │ Socket.IO (Multicast optimizado)
                  │
 ┌────────────────▼────────────────────────────────────────┐
 │                     VIEWER CLIENT                       │
 │  - Se conecta con Stream Key                            │
-│  - Recibe video (WebRTC)                                │
+│  - Recibe video/audio (Multicast)                       │
 │  - Envía/recibe mensajes de chat                        │
 │  - Envía reacciones                                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Flujo de Datos
+### Flujo de Datos (Multicast)
 
 1. **Streamer** → Crea stream → Recibe **Stream Key**
-2. **Server Hub** → Genera Stream Key único y registra stream
+2. **Server Hub** → Genera Stream Key único y registra en StreamDistributor
 3. **Viewer** → Ingresa Stream Key → Se conecta al stream
-4. **Server Hub** → Coordina señalización WebRTC entre Streamer y Viewer
-5. **WebRTC** → Conexión P2P directa para video (simplificada en esta demo)
-6. **Chat/Reacciones** → Fluyen a través del Server Hub usando Pub/Sub
+4. **Streamer** → Envía frame → **UNA SOLA VEZ** al servidor
+5. **StreamDistributor** → Distribuye frame a **TODOS los viewers** simultáneamente
+6. **Viewers tardíos** → Reciben buffer de últimos 30 frames (catchup automático)
+7. **Chat/Reacciones** → Fluyen a través del Server Hub usando Pub/Sub
+
+**💡 Ventaja clave**: El streamer usa ~2.5 Mbps sin importar si hay 1 o 100 viewers
 
 ---
 

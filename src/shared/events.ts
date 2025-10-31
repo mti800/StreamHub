@@ -27,6 +27,11 @@ export const Events = {
   WEBRTC_ANSWER: 'webrtc:answer',
   WEBRTC_ICE_CANDIDATE: 'webrtc:ice-candidate',
   
+  // Stream Data (Multicast)
+  STREAM_DATA: 'stream:data',
+  STREAM_BUFFER: 'stream:buffer',
+  STREAM_DATA_SEND: 'stream:data:send',
+  
   // Chat
   CHAT_MESSAGE_SEND: 'chat:message:send',
   CHAT_MESSAGE_RECEIVED: 'chat:message:received',
