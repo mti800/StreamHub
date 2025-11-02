@@ -11,6 +11,7 @@ import { UserManager } from './UserManager';
 import { StreamDistributor } from './StreamDistributor';
 import { SubscriptionManager } from './SubscriptionManager';
 import { NotificationService } from './NotificationService';
+import { DatabaseService } from './Database';
 import { eventBus } from '../pubsub/EventBus';
 import { Publisher } from '../pubsub/Publisher';
 import { Events } from '../shared/events';
@@ -23,6 +24,7 @@ class StreamHubServer {
   private app: express.Application;
   private httpServer: ReturnType<typeof createServer>;
   private io: Server;
+  private db: DatabaseService;
   private streamManager: StreamManager;
   private userManager: UserManager;
   private streamDistributor: StreamDistributor;
@@ -42,10 +44,14 @@ class StreamHubServer {
       }
     });
 
-    this.streamManager = new StreamManager();
-    this.userManager = new UserManager();
+    // Inicializar base de datos primero
+    this.db = new DatabaseService();
+    
+    // Inicializar managers con la DB
+    this.streamManager = new StreamManager(this.db);
+    this.userManager = new UserManager(this.db);
     this.streamDistributor = new StreamDistributor(this.io);
-    this.subscriptionManager = new SubscriptionManager();
+    this.subscriptionManager = new SubscriptionManager(this.db);
     this.notificationService = new NotificationService(this.io);
     this.publisher = new Publisher(eventBus);
     this.viewerToStream = new Map();
@@ -53,6 +59,7 @@ class StreamHubServer {
     this.setupRoutes();
     this.setupSocketIO();
     this.setupCleanupTask();
+    this.setupGracefulShutdown();
   }
 
   /**
@@ -725,6 +732,27 @@ class StreamHubServer {
   }
 
   /**
+   * Configura limpieza al cerrar el servidor
+   */
+  private setupGracefulShutdown(): void {
+    const shutdown = () => {
+      console.log('\n[Server] Cerrando servidor...');
+      
+      // Mostrar estadísticas finales
+      const stats = this.db.getStats();
+      console.log('[Database] Estadísticas finales:', stats);
+      
+      // Cerrar base de datos
+      this.db.close();
+      
+      process.exit(0);
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+  }
+
+  /**
    * Inicia el servidor
    */
   start(): void {
@@ -735,6 +763,11 @@ class StreamHubServer {
       console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
       console.log(`📡 WebSocket listo para conexiones`);
       console.log(`⏰ Sistema Pub/Sub activo`);
+      console.log(`💾 Base de datos SQLite conectada`);
+      
+      // Mostrar estadísticas de datos cargados
+      const stats = this.db.getStats();
+      console.log(`📊 Datos persistidos: ${stats.users} usuarios, ${stats.streams} streams, ${stats.subscriptions} suscripciones`);
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     });
   }

@@ -4,16 +4,37 @@
 
 import { IUser, UserRole } from '../shared/types';
 import { UserFactory } from '../factories/UserFactory';
+import { DatabaseService } from './Database';
 
 export class UserManager {
   private users: Map<string, IUser>;
   private socketToUser: Map<string, string>;
   private usernameToUser: Map<string, string>; // Para buscar por username
+  private db: DatabaseService;
 
-  constructor() {
+  constructor(db: DatabaseService) {
+    this.db = db;
     this.users = new Map();
     this.socketToUser = new Map();
     this.usernameToUser = new Map();
+    
+    // Cargar usuarios existentes de la DB
+    this.loadFromDatabase();
+  }
+
+  /**
+   * Carga usuarios desde la base de datos
+   */
+  private loadFromDatabase(): void {
+    const users = this.db.getAllUsers();
+    users.forEach(user => {
+      this.users.set(user.id, user);
+      this.usernameToUser.set(user.username.toLowerCase(), user.id);
+      if (user.socketId) {
+        this.socketToUser.set(user.socketId, user.id);
+      }
+    });
+    console.log(`[UserManager] Cargados ${users.length} usuarios de la DB`);
   }
 
   /**
@@ -36,6 +57,9 @@ export class UserManager {
         existingUser.socketId = socketId;
         this.socketToUser.set(socketId, existingUser.id);
         
+        // Actualizar en DB
+        this.db.updateUserSocket(existingUser.id, socketId);
+        
         return existingUser;
       }
     }
@@ -46,6 +70,9 @@ export class UserManager {
     this.users.set(user.id, user);
     this.socketToUser.set(socketId, user.id);
     this.usernameToUser.set(username.toLowerCase(), user.id);
+    
+    // Guardar en DB
+    this.db.saveUser(user);
 
     console.log(`[UserManager] Usuario nuevo registrado: ${username}`);
     return user;
@@ -74,6 +101,10 @@ export class UserManager {
     if (user && user.socketId) {
       this.socketToUser.delete(user.socketId);
       user.socketId = undefined;
+      
+      // Actualizar en DB
+      this.db.updateUserSocket(userId, null);
+      
       console.log(`[UserManager] Usuario desconectado (persistido): ${user.username}`);
     }
   }

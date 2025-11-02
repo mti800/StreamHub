@@ -19,9 +19,15 @@
                 radial-gradient(circle at 80% 80%, rgba(148, 0, 211, 0.1) 0%, transparent 50%),
                 linear-gradient(135deg, #1a0033 0%, #2d0052 50%, #4a0080 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
             position: relative;
             overflow-x: hidden;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
         }
 
         body::before {
@@ -42,25 +48,54 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 100%;
             margin: 0 auto;
             position: relative;
             z-index: 1;
         }
 
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1600px;
+            }
+        }
+
+        @media (min-width: 1800px) {
+            .container {
+                max-width: 1920px;
+            }
+        }
+
         .header {
             text-align: center;
             color: #ff8c00;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff6b00, 0 0 30px #ff4500;
         }
 
         .header h1 {
-            font-size: 4.5em;
+            font-size: 2.5em;
             margin-bottom: 10px;
             font-weight: 900;
-            letter-spacing: 5px;
+            letter-spacing: 3px;
             animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+            }
+            
+            .header h1 {
+                font-size: 4.5em;
+                letter-spacing: 5px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .header h1 {
+                font-size: 5.5em;
+            }
         }
 
         .header h1::before {
@@ -90,10 +125,17 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             border: 3px solid #ff8c00;
             border-radius: 15px;
-            padding: 30px;
+            padding: 15px;
             box-shadow: 0 10px 30px rgba(255, 140, 0, 0.3), 0 0 50px rgba(148, 0, 211, 0.2);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             position: relative;
+        }
+
+        @media (min-width: 768px) {
+            .card {
+                padding: 30px;
+                margin-bottom: 20px;
+            }
         }
 
         .card::before {
@@ -112,8 +154,15 @@
 
         .main-content {
             display: flex;
+            flex-direction: column;
             gap: 20px;
             margin-bottom: 20px;
+        }
+
+        @media (min-width: 1024px) {
+            .main-content {
+                flex-direction: row;
+            }
         }
 
         .video-section {
@@ -122,9 +171,22 @@
         }
 
         .chat-section {
-            width: 350px;
+            width: 100%;
             display: flex;
             flex-direction: column;
+            min-height: 400px;
+        }
+
+        @media (min-width: 1024px) {
+            .chat-section {
+                width: 350px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .chat-section {
+                width: 450px;
+            }
         }
 
         .video-container {
@@ -133,12 +195,14 @@
             border-radius: 10px;
             overflow: hidden;
             margin-bottom: 15px;
+            aspect-ratio: 16 / 9;
         }
 
         video {
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block;
+            object-fit: contain;
         }
 
         .controls {
@@ -148,24 +212,22 @@
             flex-wrap: wrap;
         }
 
-        @media (max-width: 768px) {
-            .main-content {
-                flex-direction: column;
-            }
-            .chat-section {
-                width: 100%;
-            }
-        }
-
         button {
-            padding: 12px 24px;
+            padding: 10px 16px;
             border: 2px solid #ff8c00;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 600;
             box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+        }
+
+        @media (min-width: 768px) {
+            button {
+                padding: 12px 24px;
+                font-size: 16px;
+            }
         }
 
         button:hover {
@@ -273,10 +335,32 @@
             background: rgba(10, 0, 20, 0.8);
             border: 2px solid #9370db;
             border-radius: 8px;
-            padding: 15px;
+            padding: 10px;
             margin-bottom: 15px;
-            min-height: 400px;
+            min-height: 300px;
+            max-height: 500px;
             box-shadow: inset 0 0 20px rgba(148, 0, 211, 0.2);
+        }
+
+        @media (min-width: 768px) {
+            .chat-container {
+                padding: 15px;
+                min-height: 400px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .chat-container {
+                min-height: 500px;
+                max-height: 600px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .chat-container {
+                min-height: 600px;
+                max-height: 700px;
+            }
         }
 
         .chat-message {
@@ -460,6 +544,9 @@
                 <input type="text" id="usernameInput" placeholder="Tu nombre de usuario" />
             </div>
             <button class="btn-primary" onclick="login()">Conectar</button>
+            <button class="btn-secondary" onclick="clearSavedUser()" style="margin-top: 10px; background: rgba(255, 0, 0, 0.2); border-color: #ff6b6b;">
+                Cambiar Usuario
+            </button>
         </div>
 
         <!-- Stream Setup Section -->
@@ -629,6 +716,7 @@
         let audioEnabled = true;
         let videoEnabled = true;
         let messageCount = 0;
+        let tabId = null; // ID único de esta pestaña
 
         const configuration = {
             iceServers: [
@@ -637,12 +725,50 @@
             ]
         };
 
+        // Generar ID único para esta pestaña
+        window.addEventListener('DOMContentLoaded', () => {
+            // Cada pestaña tiene su propio sessionStorage
+            tabId = sessionStorage.getItem('streamhub_tab_id');
+            
+            if (!tabId) {
+                // Nueva pestaña - generar ID único
+                tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('streamhub_tab_id', tabId);
+            }
+
+            // Intentar recuperar usuario de ESTA pestaña
+            const savedUsername = sessionStorage.getItem('streamhub_username');
+            const savedRole = sessionStorage.getItem('streamhub_role');
+            
+            if (savedUsername) {
+                document.getElementById('usernameInput').value = savedUsername;
+                console.log(`[Tab ${tabId}] Usuario recuperado: ${savedUsername}`);
+                
+                // Auto-login si viene de la página principal con rol streamer
+                if (savedRole === 'streamer') {
+                    console.log(`[Tab ${tabId}] Auto-login desde página principal`);
+                    // Limpiar el rol para evitar auto-login en recargas
+                    sessionStorage.removeItem('streamhub_role');
+                    // Hacer login automático
+                    setTimeout(() => login(), 100);
+                } else {
+                    document.getElementById('usernameInput').placeholder = `Usuario de esta pestaña: ${savedUsername}`;
+                }
+            } else {
+                console.log(`[Tab ${tabId}] Nueva pestaña sin usuario`);
+            }
+        });
+
         function login() {
             const username = document.getElementById('usernameInput').value.trim();
             if (!username) {
                 alert('Por favor ingresa un nombre de usuario');
                 return;
             }
+
+            // Guardar username en sessionStorage (solo esta pestaña)
+            sessionStorage.setItem('streamhub_username', username);
+            console.log(`[Tab ${tabId}] Usuario guardado en esta pestaña: ${username}`);
 
             socket = io('http://localhost:3000');
 
@@ -1024,6 +1150,14 @@
         function copyStreamKey() {
             navigator.clipboard.writeText(streamKey);
             alert('Stream Key copiada al portapapeles!');
+        }
+
+        function clearSavedUser() {
+            sessionStorage.removeItem('streamhub_username');
+            document.getElementById('usernameInput').value = '';
+            document.getElementById('usernameInput').placeholder = 'Tu nombre de usuario';
+            console.log(`[Tab ${tabId}] Usuario de esta pestaña eliminado`);
+            alert('Usuario de esta pestaña eliminado. Puedes ingresar uno nuevo.');
         }
 
         document.getElementById('chatInput').addEventListener('keypress', (e) => {

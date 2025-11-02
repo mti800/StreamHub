@@ -4,16 +4,35 @@
 
 import { IStream, StreamStatus, IStreamConfig } from '../shared/types';
 import { StreamFactory } from '../factories/StreamFactory';
+import { DatabaseService } from './Database';
 
 export class StreamManager {
   private streams: Map<string, IStream>;
   private streamKeyToId: Map<string, string>;
   private streamerToStream: Map<string, string>;
+  private db: DatabaseService;
 
-  constructor() {
+  constructor(db: DatabaseService) {
+    this.db = db;
     this.streams = new Map();
     this.streamKeyToId = new Map();
     this.streamerToStream = new Map();
+    
+    // Cargar streams activos de la DB
+    this.loadFromDatabase();
+  }
+
+  /**
+   * Carga streams activos desde la base de datos
+   */
+  private loadFromDatabase(): void {
+    const streams = this.db.getActiveStreams();
+    streams.forEach(stream => {
+      this.streams.set(stream.id, stream);
+      this.streamKeyToId.set(stream.streamKey, stream.id);
+      this.streamerToStream.set(stream.streamerId, stream.id);
+    });
+    console.log(`[StreamManager] Cargados ${streams.length} streams activos de la DB`);
   }
 
   /**
@@ -34,6 +53,9 @@ export class StreamManager {
     this.streams.set(stream.id, stream);
     this.streamKeyToId.set(stream.streamKey, stream.id);
     this.streamerToStream.set(config.streamerId, stream.id);
+    
+    // Guardar en DB
+    this.db.saveStream(stream);
 
     return stream;
   }
@@ -75,6 +97,10 @@ export class StreamManager {
     };
 
     this.streams.set(stream.id, updatedStream);
+    
+    // Actualizar en DB
+    this.db.saveStream(updatedStream);
+    
     return updatedStream;
   }
 
@@ -90,6 +116,10 @@ export class StreamManager {
     updatedStream.endedAt = new Date();
 
     this.streams.set(stream.id, updatedStream);
+    
+    // Actualizar en DB
+    this.db.saveStream(updatedStream);
+    
     return updatedStream;
   }
 
@@ -136,5 +166,8 @@ export class StreamManager {
         this.streamerToStream.delete(stream.streamerId);
       }
     });
+    
+    // Limpiar también en DB
+    this.db.deleteOldStreams(olderThanHours);
   }
 }

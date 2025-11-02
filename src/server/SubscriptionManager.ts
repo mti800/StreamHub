@@ -6,6 +6,7 @@
 import { Publisher } from '../pubsub/Publisher';
 import { eventBus } from '../pubsub/EventBus';
 import { Events } from '../shared/events';
+import { DatabaseService } from './Database';
 
 export class SubscriptionManager {
   // Mapa de suscripciones: followerId -> Set de followingIds
@@ -13,10 +14,31 @@ export class SubscriptionManager {
   
   // Publisher para eventos de suscripción
   private publisher: Publisher;
+  
+  private db: DatabaseService;
 
-  constructor() {
+  constructor(db: DatabaseService) {
+    this.db = db;
     this.subscriptions = new Map();
     this.publisher = new Publisher(eventBus);
+    
+    // Cargar suscripciones de la DB
+    this.loadFromDatabase();
+  }
+
+  /**
+   * Carga suscripciones desde la base de datos
+   */
+  private loadFromDatabase(): void {
+    // Obtener todos los usuarios y cargar sus suscripciones
+    const allUsers = this.db.getAllUsers();
+    allUsers.forEach(user => {
+      const subscriptions = this.db.getSubscriptions(user.id);
+      if (subscriptions.length > 0) {
+        this.subscriptions.set(user.id, new Set(subscriptions));
+      }
+    });
+    console.log(`[SubscriptionManager] Cargadas suscripciones de ${allUsers.length} usuarios de la DB`);
   }
 
   /**
@@ -37,6 +59,9 @@ export class SubscriptionManager {
     }
 
     following.add(followingId);
+    
+    // Guardar en DB
+    this.db.saveSubscription(followerId, followingId);
     
     // Publicar evento de suscripción
     this.publisher.publish(Events.USER_SUBSCRIBED, {
@@ -61,6 +86,9 @@ export class SubscriptionManager {
     const wasUnsubscribed = following.delete(followingId);
     
     if (wasUnsubscribed) {
+      // Eliminar de DB
+      this.db.deleteSubscription(followerId, followingId);
+      
       // Publicar evento de desuscripción
       this.publisher.publish(Events.USER_UNSUBSCRIBED, {
         followerId,
