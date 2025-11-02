@@ -3,10 +3,12 @@
  */
 
 import { IChatMessage, IReaction } from '../shared/types';
-import { ChatMessageStrategy } from '../strategies/ChatMessageStrategy';
-import { SystemMessageStrategy } from '../strategies/SystemMessageStrategy';
-import { ReactionMessageStrategy } from '../strategies/ReactionMessageStrategy';
-import { IMessageStrategy } from '../strategies/IMessageStrategy';
+import {
+  ChatMessageStrategy,
+  SystemMessageStrategy,
+  ReactionMessageStrategy,
+  IMessageStrategy
+} from './MessageStrategies';
 
 export class MessageFactory {
   private static chatStrategy: IMessageStrategy<IChatMessage> = new ChatMessageStrategy();

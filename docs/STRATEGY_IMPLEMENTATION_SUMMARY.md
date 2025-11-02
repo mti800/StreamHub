@@ -4,7 +4,7 @@
 
 ### ✅ Archivos Creados
 
-#### 1. Estrategias Base (`src/strategies/`)
+#### 1. Estrategias Base (`src/factories/MessageStrategies.ts`)
 - **IMessageStrategy.ts**: Interfaz base para todas las estrategias de mensajes
 - **ChatMessageStrategy.ts**: Estrategia para mensajes de chat normales
 - **SystemMessageStrategy.ts**: Estrategia para mensajes del sistema
@@ -96,7 +96,7 @@ MessageFactory.registerStrategy(
    - `docs/STRATEGY_PATTERN_ARCHITECTURE.md`
 
 3. **Para ver ejemplos:**
-   - `src/strategies/ExampleStrategies.ts`
+   - `src/factories/MessageStrategies.ts`
    - `src/examples/strategy-demo.ts`
 
 ## 🔄 Próximos Pasos Sugeridos

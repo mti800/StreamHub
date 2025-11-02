@@ -30,22 +30,23 @@ export enum MessageType {
 
 ### 2. Crear la Estrategia
 
-Crea un archivo `src/strategies/NombreDeTuEstrategia.ts`:
+Edita `src/factories/MessageStrategies.ts` y añade tu nueva estrategia:
 
 ```typescript
-import { v4 as uuidv4 } from 'uuid';
-import { IMessageStrategy, MessageParams } from './IMessageStrategy';
-import { IChatMessage, MessageType } from '../shared/types';
-
-export class AnnouncementMessageStrategy implements IMessageStrategy {
-  createMessage(params: MessageParams): IChatMessage {
+export class AnnouncementMessageStrategy implements IMessageStrategy<IChatMessage> {
+  create(
+    streamId: string,
+    userId: string,
+    username: string,
+    content: string
+  ): IChatMessage {
     return {
       id: uuidv4(),
-      streamId: params.streamId,
-      userId: params.userId,
-      username: params.username,
+      streamId,
+      userId,
+      username,
       type: MessageType.ANNOUNCEMENT,
-      content: `📢 ${params.content}`,
+      content: `📢 ${content}`,
       timestamp: new Date()
     };
   }
@@ -56,10 +57,10 @@ export class AnnouncementMessageStrategy implements IMessageStrategy {
 
 #### Opción A: Registro Estático
 
-Edita `src/factories/MessageFactory.ts` y añade la estrategia al mapa:
+Edita `src/factories/MessageFactory.ts` y añade la estrategia:
 
 ```typescript
-import { AnnouncementMessageStrategy } from '../strategies/AnnouncementMessageStrategy';
+import { AnnouncementMessageStrategy } from './MessageStrategies';
 
 private static strategies: Map<MessageType, IMessageStrategy> = new Map([
   [MessageType.CHAT, new ChatMessageStrategy()],
@@ -287,7 +288,9 @@ describe('ChatMessageStrategy', () => {
 
 ## 🚀 Próximos Pasos
 
-- Ver ejemplos en `src/strategies/ExampleStrategies.ts`
+## 📚 Recursos Adicionales
+
+- Ver ejemplos en `src/factories/MessageStrategies.ts`
 - Implementar tus propias estrategias según tus necesidades
 - Considerar añadir estrategias compuestas (que usen otras estrategias)
 - Implementar decoradores para añadir funcionalidad extra (filtros, logging, etc.)
