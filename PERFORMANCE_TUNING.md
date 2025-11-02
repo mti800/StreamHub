@@ -4,6 +4,53 @@ Guía completa de optimización para el sistema de streaming WebRTC con arquitec
 
 ---
 
+## 🎉 Sistema de Selección de Calidad Manual
+
+**StreamHub permite elegir el perfil de calidad** antes de iniciar el stream, ya que WebRTC no permite cambios dinámicos durante la transmisión.
+
+### ¿Cómo Funciona?
+
+1. **Al configurar el stream**, verás 5 opciones de calidad
+2. **El sistema recomienda automáticamente** el mejor perfil según tu conexión
+3. **Puedes cambiar la selección** manualmente si lo prefieres
+4. **Una vez iniciado**, la calidad permanece fija (reinicia para cambiar)
+
+### Perfiles Disponibles
+
+- 🎮 **Gaming (720p60)**: Para gaming y acción rápida (≥8 Mbps)
+- 📹 **Alta Calidad (720p)**: Recomendado para streams profesionales (≥5 Mbps)  
+- 💡 **Balanceado (480p)**: Perfecto para conexiones estándar (≥3 Mbps)
+- 📱 **Móvil (360p)**: Para WiFi débil o datos móviles (≥2 Mbps)
+- 🚨 **Emergencia (240p)**: Conexiones muy lentas (<2 Mbps)
+
+### Recomendación Automática
+
+El sistema detecta tu velocidad de conexión y **preselecciona automáticamente** el perfil óptimo:
+
+```
+✨ Recomendación Automática
+Según tu conexión (6.5 Mbps), hemos seleccionado:
+📹 Alta Calidad (720p)
+
+Puedes cambiar el perfil si lo deseas
+```
+
+### Ver el Perfil Activo
+
+Durante el stream verás el perfil en el badge:
+```
+┌─────────────────────────────┐
+│  📹 Alta Calidad (720p)     │
+└─────────────────────────────┘
+```
+
+### Documentación Completa
+
+- **[Adaptive Bitrate Guide](docs/ADAPTIVE_BITRATE.md)**: Documentación completa de perfiles
+- **[Testing Guide](docs/ADAPTIVE_BITRATE_TESTING.md)**: Guía de pruebas
+
+---
+
 ## 🎯 Arquitectura de Streaming Actual
 
 StreamHub utiliza **WebRTC** para transmisión de video/audio en tiempo real:

@@ -481,6 +481,82 @@
             display: flex;
             gap: 10px;
         }
+
+        /* Buffering Overlay */
+        .buffering-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .buffering-overlay.hidden {
+            display: none;
+        }
+
+        .buffering-spinner {
+            border: 4px solid rgba(255, 140, 0, 0.3);
+            border-top: 4px solid #ff8c00;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .buffering-overlay p {
+            color: #ffa500;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Connection Warning */
+        .connection-warning {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(220, 20, 60, 0.95);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px solid #ff8c00;
+            z-index: 5;
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .connection-warning.hidden {
+            display: none;
+        }
+
+        .connection-warning p {
+            margin: 0;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* Quality Indicators */
+        #connectionQuality .number {
+            font-size: 32px;
+        }
+
+        .quality-excellent { color: #00ff00 !important; }
+        .quality-good { color: #ffff00 !important; }
+        .quality-fair { color: #ffa500 !important; }
+        .quality-poor { color: #ff0000 !important; }
     </style>
 </head>
 <body>
@@ -538,6 +614,18 @@
                         <div class="number" id="viewerCount">0</div>
                         <div class="label">Viewers</div>
                     </div>
+                    <div class="stat-item" id="connectionQuality">
+                        <div class="number">🟢</div>
+                        <div class="label">Conexión</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="number" id="packetLoss">0%</div>
+                        <div class="label">Pérdida</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="number" id="latency">0ms</div>
+                        <div class="label">Latencia</div>
+                    </div>
                 </div>
             </div>
 
@@ -545,6 +633,13 @@
                 <div class="video-section">
                     <div class="video-container">
                         <video id="remoteVideo" autoplay playsinline controls muted></video>
+                        <div id="bufferingOverlay" class="buffering-overlay hidden">
+                            <div class="buffering-spinner"></div>
+                            <p>Buffering...</p>
+                        </div>
+                        <div id="poorConnectionWarning" class="connection-warning hidden">
+                            <p>⚠️ Conexión inestable. Puede haber interrupciones.</p>
+                        </div>
                     </div>
 
                     <h3>Reacciones Rápidas</h3>
@@ -582,6 +677,13 @@
         let currentUser = null;
         let allUsers = [];
         let subscribedStreams = [];
+
+        // Variables para monitoreo de red y buffering adaptativo
+        let statsInterval = null;
+        let lastPacketsLost = 0;
+        let lastPacketsReceived = 0;
+        let consecutivePoorQuality = 0;
+        let bufferingActive = false;
 
         const configuration = {
             iceServers: [
@@ -648,6 +750,7 @@
             });
 
             socket.on('stream:ended', () => {
+                stopNetworkMonitoring();
                 alert('El stream ha finalizado');
                 location.reload();
             });
@@ -756,6 +859,176 @@
                 to: data.from,
                 streamKey
             });
+
+            // Iniciar monitoreo de estadísticas WebRTC
+            startNetworkMonitoring();
+        }
+
+        /**
+         * Monitoreo de estadísticas WebRTC en tiempo real
+         */
+        function startNetworkMonitoring() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+            }
+
+            console.log('📊 Iniciando monitoreo de red...');
+
+            statsInterval = setInterval(async () => {
+                if (!peerConnection) return;
+
+                try {
+                    const stats = await peerConnection.getStats();
+                    processWebRTCStats(stats);
+                } catch (error) {
+                    console.error('Error obteniendo estadísticas:', error);
+                }
+            }, 2000); // Cada 2 segundos
+        }
+
+        /**
+         * Procesa las estadísticas WebRTC
+         */
+        function processWebRTCStats(stats) {
+            let packetsReceived = 0;
+            let packetsLost = 0;
+            let jitter = 0;
+            let currentRoundTripTime = 0;
+            let bytesReceived = 0;
+
+            stats.forEach(report => {
+                // Estadísticas de video inbound
+                if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                    packetsReceived = report.packetsReceived || 0;
+                    packetsLost = report.packetsLost || 0;
+                    jitter = report.jitter || 0;
+                    bytesReceived = report.bytesReceived || 0;
+                }
+
+                // RTT (Round Trip Time) desde candidate-pair
+                if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                    currentRoundTripTime = report.currentRoundTripTime || 0;
+                }
+            });
+
+            // Calcular pérdida de paquetes
+            const totalPackets = packetsReceived + packetsLost;
+            const packetLossPercentage = totalPackets > 0 
+                ? ((packetsLost / totalPackets) * 100).toFixed(2) 
+                : 0;
+
+            // Calcular latencia en ms
+            const latencyMs = (currentRoundTripTime * 1000).toFixed(0);
+
+            // Actualizar UI
+            updateNetworkUI(packetLossPercentage, latencyMs, jitter);
+
+            // Aplicar estrategias de buffering adaptativo
+            applyAdaptiveBuffering(parseFloat(packetLossPercentage), packetsReceived);
+
+            // Log periódico (cada 10 segundos aprox)
+            if (Math.random() < 0.2) {
+                console.log(`📊 Stats - Pérdida: ${packetLossPercentage}% | Latencia: ${latencyMs}ms | Jitter: ${jitter}`);
+            }
+        }
+
+        /**
+         * Actualiza la UI con las estadísticas de red
+         */
+        function updateNetworkUI(packetLoss, latency, jitter) {
+            // Actualizar pérdida de paquetes
+            document.getElementById('packetLoss').textContent = `${packetLoss}%`;
+
+            // Actualizar latencia
+            document.getElementById('latency').textContent = `${latency}ms`;
+
+            // Determinar calidad de conexión
+            const qualityIndicator = document.getElementById('connectionQuality').querySelector('.number');
+            const loss = parseFloat(packetLoss);
+
+            // Remover clases anteriores
+            qualityIndicator.classList.remove('quality-excellent', 'quality-good', 'quality-fair', 'quality-poor');
+
+            if (loss < 2) {
+                qualityIndicator.textContent = '🟢';
+                qualityIndicator.classList.add('quality-excellent');
+            } else if (loss < 5) {
+                qualityIndicator.textContent = '🟡';
+                qualityIndicator.classList.add('quality-good');
+            } else if (loss < 10) {
+                qualityIndicator.textContent = '🟠';
+                qualityIndicator.classList.add('quality-fair');
+            } else {
+                qualityIndicator.textContent = '🔴';
+                qualityIndicator.classList.add('quality-poor');
+            }
+        }
+
+        /**
+         * Aplica estrategias de buffering adaptativo según condiciones de red
+         */
+        function applyAdaptiveBuffering(packetLoss, packetsReceived) {
+            const videoElement = document.getElementById('remoteVideo');
+            const bufferingOverlay = document.getElementById('bufferingOverlay');
+            const poorConnectionWarning = document.getElementById('poorConnectionWarning');
+
+            // Estrategia 1: Buffering automático en caso de alta pérdida de paquetes
+            if (packetLoss > 15 && !bufferingActive) {
+                console.warn('⚠️ Alta pérdida de paquetes, activando buffering...');
+                bufferingOverlay.classList.remove('hidden');
+                bufferingActive = true;
+                
+                // Pausar video brevemente para acumular buffer
+                if (!videoElement.paused) {
+                    videoElement.pause();
+                    setTimeout(() => {
+                        videoElement.play();
+                        bufferingOverlay.classList.add('hidden');
+                        bufferingActive = false;
+                    }, 2000); // 2 segundos de buffering
+                }
+            }
+
+            // Estrategia 2: Advertencia de conexión pobre
+            if (packetLoss > 10) {
+                consecutivePoorQuality++;
+                if (consecutivePoorQuality > 3) { // 3 mediciones consecutivas (6 segundos)
+                    poorConnectionWarning.classList.remove('hidden');
+                }
+            } else if (packetLoss < 5) {
+                consecutivePoorQuality = 0;
+                poorConnectionWarning.classList.add('hidden');
+            }
+
+            // Estrategia 3: Ajustar preload del video según calidad
+            if (packetLoss > 8) {
+                videoElement.preload = 'auto'; // Precargar más datos
+            } else {
+                videoElement.preload = 'metadata'; // Modo normal
+            }
+
+            // Estrategia 4: Detectar si el stream se detuvo (no llegan paquetes)
+            const packetsDiff = packetsReceived - lastPacketsReceived;
+            if (packetsDiff === 0 && packetsReceived > 0) {
+                console.warn('⚠️ No se están recibiendo paquetes nuevos');
+                bufferingOverlay.classList.remove('hidden');
+            } else if (packetsDiff > 0 && bufferingActive) {
+                bufferingOverlay.classList.add('hidden');
+                bufferingActive = false;
+            }
+
+            lastPacketsReceived = packetsReceived;
+        }
+
+        /**
+         * Detiene el monitoreo de red
+         */
+        function stopNetworkMonitoring() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+                statsInterval = null;
+                console.log('📊 Monitoreo de red detenido');
+            }
         }
 
         function sendMessage() {
@@ -791,6 +1064,9 @@
         }
 
         function leaveStream() {
+            // Detener monitoreo de red
+            stopNetworkMonitoring();
+            
             // Notify server that viewer is leaving the stream
             if (streamKey) {
                 socket.emit('stream:leave', { streamKey: streamKey });

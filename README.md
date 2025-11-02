@@ -6,9 +6,12 @@ Sistema de streaming con arquitectura **multicast** usando **Node.js**, **TypeSc
 
 - ✅ **Streaming Multicast**: Un streamer transmite a N viewers con ancho de banda constante
 - ✅ **Escalabilidad**: Soporta 100+ viewers simultáneos
+- ✅ **Selección de Calidad**: 5 perfiles configurables con recomendación automática
+- ✅ **Buffering Adaptativo**: Gestión dinámica según condiciones de red del viewer
 - ✅ **Chat en Tiempo Real**: Mensajes y reacciones instantáneas
 - ✅ **Patrones de Diseño**: Factory, Strategy, Pub/Sub, Repository
 - ✅ **Buffer Inteligente**: Viewers tardíos reciben frames recientes automáticamente
+- ✅ **Monitoreo de Red**: Estadísticas WebRTC en tiempo real (pérdida de paquetes, latencia)
 
 ## 🚀 Inicio Rápido
 
@@ -201,7 +204,18 @@ src/
 
 ---
 
-## � Comandos Disponibles
+## 📚 Documentación Adicional
+
+- **[Performance Tuning](PERFORMANCE_TUNING.md)**: Guía de optimización y perfiles de calidad
+- **[Manual Quality Selection](docs/MANUAL_QUALITY_SELECTION.md)**: Sistema de selección de calidad
+- **[Adaptive Bitrate](docs/ADAPTIVE_BITRATE.md)**: Documentación técnica de perfiles
+- **[Multicast Implementation](MULTICAST_IMPLEMENTATION_SUMMARY.md)**: Detalles de la arquitectura multicast
+- **[Strategy Pattern](STRATEGY_IMPLEMENTATION_SUMMARY.md)**: Implementación de patrones de diseño
+- **[Adding Message Types](docs/ADDING_MESSAGE_TYPES.md)**: Cómo agregar nuevos tipos de mensajes
+
+---
+
+## 📋 Comandos Disponibles
 
 ### En cliente CLI (si lo usas)
 
@@ -232,6 +246,16 @@ src/
 | `chat:message:broadcast` | Servidor → Todos | Difundir mensaje |
 | `reaction:send` | Cliente → Servidor | Enviar reacción |
 | `reaction:broadcast` | Servidor → Todos | Difundir reacción |
+
+---
+
+## 📚 Documentación Adicional
+
+- **[Arquitectura Multicast](./docs/MULTICAST_IMPLEMENTATION.md)** - Diseño de distribución multicast
+- **[Patrones de Diseño](./docs/STRATEGY_PATTERN_ARCHITECTURE.md)** - Strategy Pattern para mensajes
+- **[Selección de Calidad](./docs/MANUAL_QUALITY_SELECTION.md)** - Sistema de perfiles de calidad
+- **[Buffering Adaptativo](./docs/ADAPTIVE_BUFFERING.md)** - Gestión dinámica de buffering en el viewer
+- **[Optimización de Rendimiento](./PERFORMANCE_TUNING.md)** - Guía de optimización
 
 ---
 
