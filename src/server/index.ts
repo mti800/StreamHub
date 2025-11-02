@@ -10,6 +10,7 @@ import { StreamManager } from './StreamManager';
 import { UserManager } from './UserManager';
 import { StreamDistributor } from './StreamDistributor';
 import { SubscriptionManager } from './SubscriptionManager';
+import { NotificationService } from './NotificationService';
 import { eventBus } from '../pubsub/EventBus';
 import { Publisher } from '../pubsub/Publisher';
 import { Events } from '../shared/events';
@@ -26,6 +27,7 @@ class StreamHubServer {
   private userManager: UserManager;
   private streamDistributor: StreamDistributor;
   private subscriptionManager: SubscriptionManager;
+  private notificationService: NotificationService;
   private publisher: Publisher;
   // Map para trackear qué stream está viendo cada socket
   private viewerToStream: Map<string, string>; // socketId -> streamKey
@@ -44,6 +46,7 @@ class StreamHubServer {
     this.userManager = new UserManager();
     this.streamDistributor = new StreamDistributor(this.io);
     this.subscriptionManager = new SubscriptionManager();
+    this.notificationService = new NotificationService(this.io);
     this.publisher = new Publisher(eventBus);
     this.viewerToStream = new Map();
 
@@ -114,15 +117,16 @@ class StreamHubServer {
       try {
         const user = this.userManager.registerUser(data.username, data.role, socket.id);
         
-        socket.emit(Events.USER_REGISTERED, { user });
+        this.notificationService.notifyUserRegistered(socket.id, user);
         console.log(`[Server] Usuario registrado: ${user.username} (${user.role})`);
 
         this.publisher.publish(Events.USER_REGISTERED, { user });
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al registrar usuario',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al registrar usuario',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
   }
@@ -136,9 +140,7 @@ class StreamHubServer {
         const user = this.userManager.getUserBySocket(socket.id);
         
         if (!user || user.role !== UserRole.STREAMER) {
-          socket.emit(Events.STREAM_ERROR, { 
-            message: 'Solo los streamers pueden crear streams' 
-          });
+          this.notificationService.notifyError(socket.id, 'Solo los streamers pueden crear streams');
           return;
         }
 
@@ -148,15 +150,16 @@ class StreamHubServer {
         this.streamDistributor.registerStream(stream.streamKey);
         
         socket.join(`stream:${stream.streamKey}`);
-        socket.emit(Events.STREAM_CREATED, { stream });
+        this.notificationService.notifyStreamCreated(socket.id, stream);
         
         console.log(`[Server] Stream creado: ${stream.streamKey} por ${user.username}`);
         this.publisher.publish(Events.STREAM_CREATED, { stream, user });
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al crear stream',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al crear stream',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
   }
@@ -170,14 +173,14 @@ class StreamHubServer {
         const user = this.userManager.getUserBySocket(socket.id);
         
         if (!user) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          this.notificationService.notifyError(socket.id, 'Usuario no registrado');
           return;
         }
 
         const stream = this.streamManager.getStreamByKey(data.streamKey);
         
         if (!stream) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Stream no encontrado' });
+          this.notificationService.notifyError(socket.id, 'Stream no encontrado');
           return;
         }
 
@@ -191,17 +194,11 @@ class StreamHubServer {
         // Trackear qué stream está viendo este socket
         this.viewerToStream.set(socket.id, stream.streamKey);
         
-        socket.emit(Events.STREAM_JOINED, { stream });
+        this.notificationService.notifyStreamJoined(socket.id, stream);
         
         // Notificar a todos en el stream sobre el nuevo viewer
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.VIEWER_JOINED, {
-          username: user.username,
-          viewerCount
-        });
-        
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.VIEWER_COUNT_UPDATE, {
-          viewerCount
-        });
+        this.notificationService.notifyViewerJoined(stream.streamKey, user.username, viewerCount);
+        this.notificationService.notifyViewerCountUpdate(stream.streamKey, viewerCount);
 
         console.log(`[Server] ${user.username} se unió al stream ${stream.streamKey}`);
 
@@ -210,16 +207,15 @@ class StreamHubServer {
           stream.id,
           `${user.username} se unió al stream`
         );
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.CHAT_MESSAGE_BROADCAST, {
-          message: systemMessage
-        });
+        this.notificationService.broadcastChatMessage(stream.streamKey, systemMessage);
 
         this.publisher.publish(Events.STREAM_JOINED, { stream, user, viewerCount });
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al unirse al stream',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al unirse al stream',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
   }
@@ -233,11 +229,11 @@ class StreamHubServer {
         const stream = this.streamManager.startStream(data.streamKey);
         
         if (!stream) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Stream no encontrado' });
+          this.notificationService.notifyError(socket.id, 'Stream no encontrado');
           return;
         }
 
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_STARTED, { stream });
+        this.notificationService.notifyStreamStarted(stream.streamKey, stream);
         
         // Usar Pub/Sub para notificar a suscriptores
         const streamer = this.userManager.getUser(stream.streamerId);
@@ -255,8 +251,7 @@ class StreamHubServer {
           followers.forEach(followerId => {
             const follower = this.userManager.getUser(followerId);
             if (follower && follower.socketId) {
-              this.io.to(follower.socketId).emit(Events.STREAM_NOTIFICATION, {
-                type: 'started',
+              this.notificationService.notifyFollower(follower.socketId, 'started', {
                 streamerId: stream.streamerId,
                 streamerUsername: streamer.username,
                 streamId: stream.id,
@@ -270,10 +265,11 @@ class StreamHubServer {
           console.log(`[Server] Notificados ${followers.length} suscriptores`);
         }
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al iniciar stream',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al iniciar stream',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
   }
@@ -287,11 +283,11 @@ class StreamHubServer {
         const stream = this.streamManager.endStream(data.streamKey);
         
         if (!stream) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Stream no encontrado' });
+          this.notificationService.notifyError(socket.id, 'Stream no encontrado');
           return;
         }
 
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_ENDED, { stream });
+        this.notificationService.notifyStreamEnded(stream.streamKey, stream);
         
         // Usar Pub/Sub para notificar a suscriptores que el stream finalizó
         const streamer = this.userManager.getUser(stream.streamerId);
@@ -309,8 +305,7 @@ class StreamHubServer {
           followers.forEach(followerId => {
             const follower = this.userManager.getUser(followerId);
             if (follower && follower.socketId) {
-              this.io.to(follower.socketId).emit(Events.STREAM_NOTIFICATION, {
-                type: 'ended',
+              this.notificationService.notifyFollower(follower.socketId, 'ended', {
                 streamerId: stream.streamerId,
                 streamerUsername: streamer.username,
                 streamId: stream.id,
@@ -335,12 +330,13 @@ class StreamHubServer {
         });
         
         // Desconectar a todos del room
-        this.io.in(`stream:${stream.streamKey}`).socketsLeave(`stream:${stream.streamKey}`);
+        this.notificationService.leaveRoom(stream.streamKey);
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al finalizar stream',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al finalizar stream',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
   }
@@ -376,14 +372,8 @@ class StreamHubServer {
         socket.leave(`stream:${stream.streamKey}`);
         
         // Notificar a todos en el stream
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.VIEWER_LEFT, {
-          username: user.username,
-          viewerCount
-        });
-        
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.VIEWER_COUNT_UPDATE, {
-          viewerCount
-        });
+        this.notificationService.notifyViewerLeft(stream.streamKey, user.username, viewerCount);
+        this.notificationService.notifyViewerCountUpdate(stream.streamKey, viewerCount);
 
         console.log(`[Server] ${user.username} salió del stream ${stream.streamKey}`);
         
@@ -392,9 +382,7 @@ class StreamHubServer {
           stream.id,
           `${user.username} salió del stream`
         );
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.CHAT_MESSAGE_BROADCAST, {
-          message: systemMessage
-        });
+        this.notificationService.broadcastChatMessage(stream.streamKey, systemMessage);
 
         this.publisher.publish(Events.VIEWER_LEFT, { stream, user, viewerCount });
       } catch (error) {
@@ -451,7 +439,7 @@ class StreamHubServer {
       if (stream) {
         const streamer = this.userManager.getUser(stream.streamerId);
         if (streamer && streamer.socketId) {
-          this.io.to(streamer.socketId).emit('webrtc:request', data);
+          this.notificationService.sendWebRTCSignal(streamer.socketId, 'webrtc:request', data);
         }
       }
     });
@@ -459,19 +447,19 @@ class StreamHubServer {
     // Offer del streamer al viewer
     socket.on(Events.WEBRTC_OFFER, (data: IWebRTCSignal) => {
       console.log(`[Server] WebRTC Offer de ${data.from} a ${data.to}`);
-      this.io.to(data.to).emit(Events.WEBRTC_OFFER, data);
+      this.notificationService.sendWebRTCSignal(data.to, Events.WEBRTC_OFFER, data);
     });
 
     // Answer del viewer al streamer
     socket.on(Events.WEBRTC_ANSWER, (data: IWebRTCSignal) => {
       console.log(`[Server] WebRTC Answer de ${data.from} a ${data.to}`);
-      this.io.to(data.to).emit(Events.WEBRTC_ANSWER, data);
+      this.notificationService.sendWebRTCSignal(data.to, Events.WEBRTC_ANSWER, data);
     });
 
     // ICE Candidates
     socket.on(Events.WEBRTC_ICE_CANDIDATE, (data: IWebRTCSignal) => {
       console.log(`[Server] ICE Candidate de ${data.from} a ${data.to}`);
-      this.io.to(data.to).emit(Events.WEBRTC_ICE_CANDIDATE, data);
+      this.notificationService.sendWebRTCSignal(data.to, Events.WEBRTC_ICE_CANDIDATE, data);
     });
   }
 
@@ -493,9 +481,7 @@ class StreamHubServer {
           data.content
         );
 
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.CHAT_MESSAGE_BROADCAST, {
-          message
-        });
+        this.notificationService.broadcastChatMessage(stream.streamKey, message);
 
         console.log(`[Server] Chat [${stream.streamKey}] ${user.username}: ${data.content}`);
         this.publisher.publish(Events.CHAT_MESSAGE_BROADCAST, { message, stream });
@@ -523,9 +509,7 @@ class StreamHubServer {
           data.emoji
         );
 
-        this.io.to(`stream:${stream.streamKey}`).emit(Events.REACTION_BROADCAST, {
-          reaction
-        });
+        this.notificationService.broadcastReaction(stream.streamKey, reaction);
 
         console.log(`[Server] Reacción [${stream.streamKey}] ${user.username}: ${data.emoji}`);
         this.publisher.publish(Events.REACTION_BROADCAST, { reaction, stream });
@@ -545,36 +529,31 @@ class StreamHubServer {
         const user = this.userManager.getUserBySocket(socket.id);
         
         if (!user) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          this.notificationService.notifyError(socket.id, 'Usuario no registrado');
           return;
         }
 
         const targetUser = this.userManager.getUser(data.targetUserId);
         
         if (!targetUser) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Usuario objetivo no encontrado' });
+          this.notificationService.notifyError(socket.id, 'Usuario objetivo no encontrado');
           return;
         }
 
         const success = this.subscriptionManager.subscribe(user.id, data.targetUserId);
         
         if (success) {
-          socket.emit(Events.USER_SUBSCRIBED, {
-            targetUserId: data.targetUserId,
-            targetUsername: targetUser.username
-          });
-          
+          this.notificationService.notifyUserSubscribed(socket.id, data.targetUserId, targetUser.username);
           console.log(`[Server] ${user.username} se suscribió a ${targetUser.username}`);
         } else {
-          socket.emit(Events.STREAM_ERROR, { 
-            message: 'No se pudo completar la suscripción' 
-          });
+          this.notificationService.notifyError(socket.id, 'No se pudo completar la suscripción');
         }
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al suscribirse',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al suscribirse',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
 
@@ -584,7 +563,7 @@ class StreamHubServer {
         const user = this.userManager.getUserBySocket(socket.id);
         
         if (!user) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          this.notificationService.notifyError(socket.id, 'Usuario no registrado');
           return;
         }
 
@@ -592,18 +571,15 @@ class StreamHubServer {
         
         if (success) {
           const targetUser = this.userManager.getUser(data.targetUserId);
-          socket.emit(Events.USER_UNSUBSCRIBED, {
-            targetUserId: data.targetUserId,
-            targetUsername: targetUser?.username
-          });
-          
+          this.notificationService.notifyUserUnsubscribed(socket.id, data.targetUserId, targetUser?.username);
           console.log(`[Server] ${user.username} se desuscribió de ${targetUser?.username}`);
         }
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al desuscribirse',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al desuscribirse',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
 
@@ -613,7 +589,7 @@ class StreamHubServer {
         const user = this.userManager.getUserBySocket(socket.id);
         
         if (!user) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          this.notificationService.notifyError(socket.id, 'Usuario no registrado');
           return;
         }
 
@@ -622,12 +598,13 @@ class StreamHubServer {
           .map(id => this.userManager.getUser(id))
           .filter(u => u !== undefined);
 
-        socket.emit(Events.SUBSCRIPTIONS_LIST, { subscriptions });
+        this.notificationService.sendSubscriptionsList(socket.id, subscriptions);
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al obtener suscripciones',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al obtener suscripciones',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
   }
@@ -641,7 +618,7 @@ class StreamHubServer {
         const currentUser = this.userManager.getUserBySocket(socket.id);
         
         if (!currentUser) {
-          socket.emit(Events.STREAM_ERROR, { message: 'Usuario no registrado' });
+          this.notificationService.notifyError(socket.id, 'Usuario no registrado');
           return;
         }
 
@@ -665,12 +642,13 @@ class StreamHubServer {
             } as IUserSubscription;
           });
 
-        socket.emit(Events.USERS_LIST, { users: usersList });
+        this.notificationService.sendUsersList(socket.id, usersList);
       } catch (error) {
-        socket.emit(Events.STREAM_ERROR, { 
-          message: 'Error al obtener usuarios',
-          error: error instanceof Error ? error.message : 'Error desconocido'
-        });
+        this.notificationService.notifyError(
+          socket.id,
+          'Error al obtener usuarios',
+          error instanceof Error ? error.message : undefined
+        );
       }
     });
   }
@@ -699,10 +677,11 @@ class StreamHubServer {
               }
             });
             
-            this.io.to(`stream:${stream.streamKey}`).emit(Events.STREAM_ENDED, { 
+            this.notificationService.notifyStreamEnded(
+              stream.streamKey,
               stream,
-              reason: 'El streamer se desconectó'
-            });
+              'El streamer se desconectó'
+            );
           }
         } else {
           // Si es viewer, verificar si estaba viendo un stream
@@ -719,14 +698,8 @@ class StreamHubServer {
             this.viewerToStream.delete(socket.id);
             
             // Notificar actualización de contador
-            this.io.to(`stream:${streamKey}`).emit(Events.VIEWER_COUNT_UPDATE, {
-              viewerCount
-            });
-            
-            this.io.to(`stream:${streamKey}`).emit(Events.VIEWER_LEFT, {
-              username: user.username,
-              viewerCount
-            });
+            this.notificationService.notifyViewerCountUpdate(streamKey, viewerCount);
+            this.notificationService.notifyViewerLeft(streamKey, user.username, viewerCount);
             
             console.log(`[Server] Viewer ${user.username} removido del stream ${streamKey}, viewers restantes: ${viewerCount}`);
           }
