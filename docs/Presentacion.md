@@ -1,5 +1,13 @@
-# Performance y Eficiencia
+# Presentación 
 
+1. 4 viewers entran al sistema
+2. Streamer inicia Stream (Posibilidad de elegir calidad)
+3. Viewer ve el stream (buffer)
+4. Bus de Eventos con mensajes
+
+
+
+# Performance y Eficiencia
 
 ## Cliente Streamer -> Servidor con WebRTC
 *WebRTC Peer Connection desde el cliente Streamer hacia el servidor.*
@@ -73,7 +81,7 @@ El servidor envía con multicast a los viewers y tampoco puede cambiar la calida
 
 
 Para forzar buffering manualmente (simulando alta pérdida de paquetes):
-```
+```javascript
 applyAdaptiveBuffering(20, 1000);
 ```
 

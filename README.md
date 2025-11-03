@@ -1,6 +1,9 @@
 # StreamHub - Sistema de Streaming con Chat en Tiempo Real
 
-Sistema de streaming con arquitectura **multicast** usando **Node.js**, **TypeScript**, **Socket.IO** y patrones de diseño **Factory**, **Strategy** y **Pub/Sub**.
+Proyecto para la materia Ingeniería del Software III
+UAP - Noviembre 2025
+
+Sistema de streaming de video en tiempo real con chat e interacciónes. Proyecto testigo implementado con una arquitectura monolítica + capas y **Factory**, **Strategy** y **Pub/Sub** fueron los patrones de diseño utilizados. Las tecnologías que se utilizaron incluyen **WebRTC**, **multicast**, **Node.js**, **TypeScript** y **Socket.IO** entre otras.
 
 ## ⚡ Características Principales
 
@@ -9,7 +12,7 @@ Sistema de streaming con arquitectura **multicast** usando **Node.js**, **TypeSc
 - ✅ **Selección de Calidad**: 5 perfiles configurables con recomendación automática
 - ✅ **Buffering Adaptativo**: Gestión dinámica según condiciones de red del viewer
 - ✅ **Chat en Tiempo Real**: Mensajes y reacciones instantáneas
-- ✅ **Patrones de Diseño**: Factory, Strategy, Pub/Sub, Repository
+- ✅ **Patrones de Diseño**: Factory, Strategy, Pub/Sub
 - ✅ **Buffer Inteligente**: Viewers tardíos reciben frames recientes automáticamente
 - ✅ **Monitoreo de Red**: Estadísticas WebRTC en tiempo real (pérdida de paquetes, latencia)
 
@@ -19,8 +22,6 @@ Sistema de streaming con arquitectura **multicast** usando **Node.js**, **TypeSc
 ```powershell
 npm install
 ```
-
-## ▶️ Ejecución
 
 ### Inicia el servidor
 ```powershell
@@ -32,9 +33,9 @@ npm run dev
 ### Abre tu navegador
 El servidor estará disponible en `http://localhost:3000`
 
+- **Home**: http://localhost:3000
 - **Streamer**: http://localhost:3000/streamer.html
 - **Viewer**: http://localhost:3000/viewer.html
-- **Home**: http://localhost:3000
 
 ### Cómo usar
 
@@ -43,14 +44,14 @@ El servidor estará disponible en `http://localhost:3000`
 2. Ingresa tu nombre
 3. Haz clic en "Crear Stream"
 4. Permite acceso a cámara y micrófono
-5. **Copia la Stream Key**
+5. **Copia la Stream Key** generada
 6. Haz clic en "Iniciar Transmisión"
 7. ¡Comparte la Stream Key con tus viewers!
 
 **Como Viewer:**
 1. Abre http://localhost:3000/viewer.html
 2. Ingresa tu nombre
-3. **Pega la Stream Key**
+3. **Pega la Stream Key** que te compartió el streamer
 4. Haz clic en "Unirse"
 5. ¡Disfruta del stream en vivo!
 
@@ -62,7 +63,7 @@ Si quieres probar el sistema desde la terminal:
 npm run dev:client
 ```
 
-**Nota**: El cliente CLI es solo para testing. Para la experiencia completa con video, usa el navegador.
+**Nota**: El cliente CLI es solo para testing. Para la experiencia completa con video/audio, usa el navegador.
 
 ## 📋 Comandos Disponibles
 
@@ -74,16 +75,46 @@ npm run dev:client # Cliente CLI para testing (opcional)
 npm run clean      # Limpia los archivos compilados
 ```
 
-
 ---
 
-## 📋 Tabla de Contenidos
+## 🏗️ Arquitectura del Sistema
 
-- [Arquitectura](#arquitectura)
-- [Patrones de Diseño](#patrones-de-diseño)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [API de Eventos](#api-de-eventos)
-- [Comandos de Chat](#comandos-de-chat)
+## 🏗️ Arquitectura del Sistema
+
+### Estructura del Proyecto
+```
+src/
+├── shared/         # Tipos e interfaces compartidos
+│   ├── types.ts    # Definiciones de tipos
+│   └── events.ts   # Constantes de eventos
+├── factories/      # Factory Pattern (creación de objetos)
+│   ├── UserFactory.ts      # Crea usuarios (Streamer/Viewer)
+│   ├── StreamFactory.ts    # Crea streams
+│   ├── MessageFactory.ts   # Crea mensajes
+│   └── MessageStrategies.ts # Strategy Pattern para mensajes
+├── pubsub/         # Publisher-Subscriber Pattern
+│   ├── EventBus.ts      # Bus de eventos central
+│   ├── Publisher.ts     # Publicador de eventos
+│   └── Subscriber.ts    # Suscriptor de eventos
+├── server/         # Servidor Hub + Managers
+│   ├── index.ts                # Servidor principal
+│   ├── Database.ts             # Persistencia con SQLite
+│   ├── UserManager.ts          # Gestión de usuarios
+│   ├── StreamManager.ts        # Gestión de streams
+│   ├── StreamDistributor.ts    # Distribución multicast
+│   ├── SubscriptionManager.ts  # Gestión de suscripciones
+│   └── NotificationService.ts  # Servicio de notificaciones
+└── clients/        # Clientes (para testing CLI)
+    ├── BaseClient.ts
+    ├── client.ts
+    ├── streamer.ts
+    └── viewer.ts
+
+public/
+├── index.html      # Página de inicio
+├── streamer.html   # Interfaz del streamer
+└── viewer.html     # Interfaz del viewer
+```
 
 ### Componentes Principales
 
@@ -165,7 +196,7 @@ Crea usuarios, streams y mensajes de forma consistente:
 ```typescript
 UserFactory.createStreamer('John', socketId);
 StreamFactory.createStream(streamerId);
-MessageFactory.createChatMessage(streamId, userId, 'Hola!');
+MessageFactory.createChatMessage(streamId, userId, username, 'Hola!');
 ```
 
 ### Strategy Pattern
@@ -175,9 +206,6 @@ Permite añadir nuevos tipos de mensajes fácilmente:
 MessageFactory.createChatMessage(...);     // Usa ChatMessageStrategy
 MessageFactory.createSystemMessage(...);   // Usa SystemMessageStrategy
 MessageFactory.createReaction(...);        // Usa ReactionMessageStrategy
-
-// Se pueden cambiar las estrategias si es necesario
-MessageFactory.setChatStrategy(new CustomChatStrategy());
 ```
 
 ### Publisher-Subscriber Pattern
@@ -189,52 +217,9 @@ subscriber.subscribe(Events.STREAM_CREATED, callback);
 
 ---
 
----
-
-## 🏗️ Arquitectura
-
-```
-src/
-├── shared/         # Tipos e interfaces
-├── factories/      # Factory & Builder patterns
-├── pubsub/         # Sistema Pub/Sub
-├── server/         # Server Hub + Managers
-└── clients/        # Streamer & Viewer
-```
-
----
-
-## 📚 Documentación Adicional
-
-- **[Performance Tuning](PERFORMANCE_TUNING.md)**: Guía de optimización y perfiles de calidad
-- **[Manual Quality Selection](docs/MANUAL_QUALITY_SELECTION.md)**: Sistema de selección de calidad
-- **[Adaptive Bitrate](docs/ADAPTIVE_BITRATE.md)**: Documentación técnica de perfiles
-- **[Multicast Implementation](MULTICAST_IMPLEMENTATION_SUMMARY.md)**: Detalles de la arquitectura multicast
-- **[Strategy Pattern](STRATEGY_IMPLEMENTATION_SUMMARY.md)**: Implementación de patrones de diseño
-- **[Adding Message Types](docs/ADDING_MESSAGE_TYPES.md)**: Cómo agregar nuevos tipos de mensajes
-
----
-
-## 📋 Comandos Disponibles
-
-### En cliente CLI (si lo usas)
-
-**Streamer:**
-- `/chat <mensaje>` - Enviar mensaje
-- `/viewers` - Ver cantidad de viewers
-- `/end` - Finalizar stream
-
-**Viewer:**
-- `/chat <mensaje>` - Enviar mensaje
-- `/react <emoji>` - Enviar reacción
-- `/viewers` - Ver cantidad de viewers
-- `/leave` - Salir del stream
-
----
-
 ## 📡 API de Eventos
 
-### Principales Eventos
+### Eventos Principales
 
 | Evento | Dirección | Descripción |
 |--------|-----------|-------------|
@@ -242,41 +227,39 @@ src/
 | `stream:create` | Cliente → Servidor | Crear stream |
 | `stream:join` | Cliente → Servidor | Unirse con Stream Key |
 | `stream:start` | Cliente → Servidor | Iniciar transmisión |
+| `stream:end` | Cliente → Servidor | Finalizar transmisión |
+| `stream:data:send` | Cliente → Servidor | Enviar datos de stream |
+| `stream:data` | Servidor → Viewers | Distribuir datos (multicast) |
 | `chat:message:send` | Cliente → Servidor | Enviar mensaje |
 | `chat:message:broadcast` | Servidor → Todos | Difundir mensaje |
 | `reaction:send` | Cliente → Servidor | Enviar reacción |
 | `reaction:broadcast` | Servidor → Todos | Difundir reacción |
+| `user:subscribe` | Cliente → Servidor | Suscribirse a usuario |
+| `stream:notification` | Servidor → Suscriptores | Notificación de stream |
 
 ---
 
-## 📚 Documentación Adicional
+## 💾 Persistencia de Datos
 
-- **[Arquitectura Multicast](./docs/MULTICAST_IMPLEMENTATION.md)** - Diseño de distribución multicast
-- **[Patrones de Diseño](./docs/STRATEGY_PATTERN_ARCHITECTURE.md)** - Strategy Pattern para mensajes
-- **[Selección de Calidad](./docs/MANUAL_QUALITY_SELECTION.md)** - Sistema de perfiles de calidad
-- **[Buffering Adaptativo](./docs/ADAPTIVE_BUFFERING.md)** - Gestión dinámica de buffering en el viewer
-- **[Optimización de Rendimiento](./PERFORMANCE_TUNING.md)** - Guía de optimización
+El sistema utiliza **SQLite** para persistencia de datos:
 
----
+- **Usuarios**: Información de streamers y viewers
+- **Streams**: Historial completo de transmisiones
+- **Suscripciones**: Relaciones entre usuarios (followers/following)
 
-##  Troubleshooting
-
-### "Stream no encontrado"
-- Verifica que la Stream Key sea correcta
-- Confirma que el streamer haya iniciado la transmisión
-
-### "Puerto en uso"
-```powershell
-# Cambia el puerto
-$env:PORT=3001
-npm start
-```
-
-### Problemas con la cámara
-- Asegúrate de dar permisos al navegador
-- Verifica que ninguna otra app esté usando la cámara
-- Prueba en http://localhost:3000 (no https)
+Los datos persisten entre reinicios del servidor, permitiendo:
+- Recuperar usuarios registrados
+- Mantener historial de streams
+- Conservar suscripciones entre sesiones
 
 ---
 
-**¡Disfruta construyendo con StreamHub!** 🚀
+## 🔔 Sistema de Notificaciones
+
+Los usuarios pueden **suscribirse a streamers** para recibir notificaciones cuando:
+- Un streamer inicia una transmisión
+- Un streamer finaliza su transmisión
+
+Las notificaciones se envían en tiempo real usando Socket.IO y el patrón Pub/Sub.
+
+---
