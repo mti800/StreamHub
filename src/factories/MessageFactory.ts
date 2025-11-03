@@ -1,11 +1,20 @@
 /**
- * Patrón Factory: Creación de mensajes y eventos
+ * Patrón Factory + Strategy: Creación de mensajes y eventos
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { IChatMessage, IReaction, MessageType } from '../shared/types';
+import { IChatMessage, IReaction } from '../shared/types';
+import {
+  ChatMessageStrategy,
+  SystemMessageStrategy,
+  ReactionMessageStrategy,
+  IMessageStrategy
+} from './MessageStrategies';
 
 export class MessageFactory {
+  private static chatStrategy: IMessageStrategy<IChatMessage> = new ChatMessageStrategy();
+  private static systemStrategy: IMessageStrategy<IChatMessage> = new SystemMessageStrategy();
+  private static reactionStrategy: IMessageStrategy<IReaction> = new ReactionMessageStrategy();
+
   /**
    * Crea un mensaje de chat
    */
@@ -15,15 +24,7 @@ export class MessageFactory {
     username: string,
     content: string
   ): IChatMessage {
-    return {
-      id: uuidv4(),
-      streamId,
-      userId,
-      username,
-      type: MessageType.CHAT,
-      content,
-      timestamp: new Date()
-    };
+    return this.chatStrategy.create(streamId, userId, username, content);
   }
 
   /**
@@ -33,15 +34,7 @@ export class MessageFactory {
     streamId: string,
     content: string
   ): IChatMessage {
-    return {
-      id: uuidv4(),
-      streamId,
-      userId: 'system',
-      username: 'Sistema',
-      type: MessageType.SYSTEM,
-      content,
-      timestamp: new Date()
-    };
+    return this.systemStrategy.create(streamId, content);
   }
 
   /**
@@ -53,13 +46,27 @@ export class MessageFactory {
     username: string,
     emoji: string
   ): IReaction {
-    return {
-      id: uuidv4(),
-      streamId,
-      userId,
-      username,
-      emoji,
-      timestamp: new Date()
-    };
+    return this.reactionStrategy.create(streamId, userId, username, emoji);
+  }
+
+  /**
+   * Permite cambiar la estrategia de mensajes de chat
+   */
+  static setChatStrategy(strategy: IMessageStrategy<IChatMessage>): void {
+    this.chatStrategy = strategy;
+  }
+
+  /**
+   * Permite cambiar la estrategia de mensajes del sistema
+   */
+  static setSystemStrategy(strategy: IMessageStrategy<IChatMessage>): void {
+    this.systemStrategy = strategy;
+  }
+
+  /**
+   * Permite cambiar la estrategia de reacciones
+   */
+  static setReactionStrategy(strategy: IMessageStrategy<IReaction>): void {
+    this.reactionStrategy = strategy;
   }
 }

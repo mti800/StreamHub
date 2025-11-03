@@ -18,11 +18,11 @@
                 radial-gradient(circle at 20% 50%, rgba(255, 140, 0, 0.1) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(148, 0, 211, 0.1) 0%, transparent 50%),
                 linear-gradient(135deg, #1a0033 0%, #2d0052 50%, #4a0080 100%);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 15px;
             position: relative;
             overflow: hidden;
         }
@@ -59,26 +59,63 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 100%;
             width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             position: relative;
             z-index: 1;
+            padding: 0 15px;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 1100px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1400px;
+            }
+        }
+
+        @media (min-width: 1800px) {
+            .container {
+                max-width: 1600px;
+            }
         }
 
         .header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 25px;
         }
 
         .logo {
-            font-size: 5em;
+            font-size: 2.5em;
             color: #ff8c00;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-weight: 900;
-            letter-spacing: 8px;
+            letter-spacing: 3px;
             text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff6b00, 0 0 30px #ff4500, 0 0 40px #ff4500;
             animation: glow 2s ease-in-out infinite alternate;
             line-height: 1.2;
+        }
+
+        @media (min-width: 768px) {
+            .logo {
+                font-size: 3.5em;
+                letter-spacing: 6px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .logo {
+                font-size: 4.5em;
+                letter-spacing: 8px;
+            }
         }
 
         .logo::before {
@@ -102,35 +139,60 @@
 
         .subtitle {
             color: #ffa500;
-            font-size: 1.5em;
+            font-size: 1.2em;
             text-shadow: 0 0 10px #ff8c00;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         .tagline {
             color: #da70d6;
-            font-size: 1.1em;
+            font-size: 1em;
             text-shadow: 0 0 5px #9370db;
         }
 
         .cards-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        @media (min-width: 768px) {
+            .cards-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 25px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .cards-container {
+                gap: 35px;
+            }
         }
 
         .card {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             border: 3px solid #ff8c00;
             border-radius: 20px;
-            padding: 40px;
+            padding: 25px;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
             position: relative;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(255, 140, 0, 0.3), 0 0 50px rgba(148, 0, 211, 0.2);
+        }
+
+        @media (min-width: 768px) {
+            .card {
+                padding: 30px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .card {
+                padding: 40px;
+            }
         }
 
         .card::before {
@@ -155,8 +217,8 @@
         }
 
         .card-icon {
-            font-size: 5em;
-            margin-bottom: 20px;
+            font-size: 3.5em;
+            margin-bottom: 15px;
             filter: drop-shadow(0 0 20px rgba(255, 140, 0, 0.5));
             animation: bounce 2s ease-in-out infinite;
         }
@@ -176,28 +238,28 @@
 
         .card-title {
             color: #ff8c00;
-            font-size: 2em;
+            font-size: 1.6em;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-shadow: 0 0 10px #ff8c00;
         }
 
         .card-description {
             color: #ffa500;
-            font-size: 1.1em;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            font-size: 0.95em;
+            line-height: 1.5;
+            margin-bottom: 15px;
         }
 
         .card-link {
             display: inline-block;
-            padding: 15px 40px;
+            padding: 12px 30px;
             background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
             color: #1a0033;
             text-decoration: none;
             border-radius: 10px;
             font-weight: 700;
-            font-size: 1.2em;
+            font-size: 1.1em;
             border: 2px solid #ff8c00;
             transition: all 0.3s ease;
             box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
@@ -209,34 +271,162 @@
             box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
         }
 
+        .login-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 3px solid #ff8c00;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.3), 0 0 50px rgba(148, 0, 211, 0.2);
+        }
+
+        .login-section h2 {
+            color: #ff8c00;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 10px #ff8c00;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #ffa500;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ff8c00;
+            border-radius: 10px;
+            background: rgba(26, 26, 46, 0.8);
+            color: #ffa500;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #ffa500;
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.5);
+        }
+
+        .input-group input::placeholder {
+            color: #9370db;
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .role-option {
+            background: rgba(26, 26, 46, 0.6);
+            border: 2px solid #9370db;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .role-option:hover {
+            border-color: #ff8c00;
+            background: rgba(255, 140, 0, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .role-option.selected {
+            border-color: #ff8c00;
+            background: rgba(255, 140, 0, 0.2);
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+        }
+
+        .role-option input[type="radio"] {
+            display: none;
+        }
+
+        .role-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .role-name {
+            color: #ffa500;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #1a0033;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
+        }
+
+        .btn-login:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .error-message {
+            color: #ff4444;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.95em;
+            display: none;
+        }
+
         .features {
-            margin-top: 50px;
+            margin-top: 25px;
             text-align: center;
             background: rgba(25, 0, 51, 0.6);
             border: 2px solid #9370db;
             border-radius: 15px;
-            padding: 30px;
+            padding: 20px;
             box-shadow: 0 0 20px rgba(147, 112, 219, 0.3);
         }
 
         .features h2 {
             color: #ff8c00;
-            font-size: 2em;
-            margin-bottom: 25px;
+            font-size: 1.5em;
+            margin-bottom: 15px;
             text-shadow: 0 0 10px #ff8c00;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
         }
 
         .feature-item {
             color: #ffa500;
-            font-size: 1.1em;
-            padding: 15px;
+            font-size: 0.95em;
+            padding: 12px;
             background: rgba(75, 0, 130, 0.3);
             border-left: 3px solid #ff8c00;
             border-radius: 8px;
@@ -249,23 +439,64 @@
 
         .footer {
             text-align: center;
-            margin-top: 50px;
+            margin-top: 20px;
             color: #9370db;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 767px) {
             .logo {
-                font-size: 3em;
-                letter-spacing: 4px;
+                font-size: 2em;
+                letter-spacing: 2px;
             }
             
             .subtitle {
-                font-size: 1.2em;
+                font-size: 1em;
+            }
+            
+            .tagline {
+                font-size: 0.9em;
             }
             
             .cards-container {
                 grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .card-icon {
+                font-size: 3em;
+            }
+
+            .card-title {
+                font-size: 1.4em;
+            }
+        }
+
+        @media (max-height: 800px) {
+            .logo {
+                font-size: 3em;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+            
+            .card-icon {
+                font-size: 3em;
+                margin-bottom: 10px;
+            }
+            
+            .features {
+                padding: 15px;
+            }
+            
+            .features h2 {
+                font-size: 1.3em;
+                margin-bottom: 10px;
             }
         }
     </style>
@@ -278,7 +509,40 @@
             <p class="tagline">Transmite terror en vivo con chat en tiempo real</p>
         </div>
 
-        <div class="cards-container">
+        <!-- Login Section -->
+        <div class="login-section">
+            <h2>🎭 Iniciar Sesión</h2>
+            
+            <div class="input-group">
+                <label for="username">👤 Nombre de Usuario</label>
+                <input type="text" id="username" placeholder="Ingresa tu nombre de usuario" autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <label>🎬 Selecciona tu rol</label>
+                <div class="role-selector">
+                    <label class="role-option" for="roleStreamer">
+                        <input type="radio" name="role" id="roleStreamer" value="streamer">
+                        <div class="role-icon">🎥</div>
+                        <div class="role-name">Streamer</div>
+                    </label>
+                    
+                    <label class="role-option" for="roleViewer">
+                        <input type="radio" name="role" id="roleViewer" value="viewer">
+                        <div class="role-icon">👁️</div>
+                        <div class="role-name">Viewer</div>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn-login" onclick="handleLogin()">
+                🚀 Entrar a StreamHub
+            </button>
+            
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="cards-container" style="display: none;">
             <div class="card" onclick="window.location.href='/streamer.html'">
                 <div class="card-icon">🎥</div>
                 <h2 class="card-title">Streamer</h2>
@@ -317,5 +581,60 @@
             <p style="margin-top: 10px; font-size: 0.8em;">Powered by WebRTC, Socket.IO & TypeScript</p>
         </div>
     </div>
+
+    <script>
+        // Cargar datos guardados
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUsername = sessionStorage.getItem('streamhub_username');
+            if (savedUsername) {
+                document.getElementById('username').value = savedUsername;
+            }
+            
+            // Agregar listeners para selección visual de rol
+            document.querySelectorAll('.role-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.role-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                    this.querySelector('input[type="radio"]').checked = true;
+                });
+            });
+
+            // Enter para hacer login
+            document.getElementById('username').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+        });
+
+        function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const selectedRole = document.querySelector('input[name="role"]:checked');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Validaciones
+            if (!username) {
+                errorMessage.textContent = '⚠️ Por favor ingresa un nombre de usuario';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (!selectedRole) {
+                errorMessage.textContent = '⚠️ Por favor selecciona un rol (Streamer o Viewer)';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // Guardar en sessionStorage
+            sessionStorage.setItem('streamhub_username', username);
+            sessionStorage.setItem('streamhub_role', selectedRole.value);
+
+            // Redirigir según el rol
+            const page = selectedRole.value === 'streamer' ? '/streamer.html' : '/viewer.html';
+            window.location.href = page;
+        }
+    </script>
 </body>
 </html>

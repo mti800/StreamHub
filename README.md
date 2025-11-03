@@ -1,6 +1,20 @@
 # StreamHub - Sistema de Streaming con Chat en Tiempo Real
 
-Sistema de streaming unidireccional usando **Node.js**, **TypeScript**, **Socket.IO** y patrones de diseño **Factory**, **Builder** y **Pub/Sub**.
+Proyecto para la materia Ingeniería del Software III
+UAP - Noviembre 2025
+
+Sistema de streaming de video en tiempo real con chat e interacciónes. Proyecto testigo implementado con una arquitectura monolítica + capas y **Factory**, **Strategy** y **Pub/Sub** fueron los patrones de diseño utilizados. Las tecnologías que se utilizaron incluyen **WebRTC**, **multicast**, **Node.js**, **TypeScript** y **Socket.IO** entre otras.
+
+## ⚡ Características Principales
+
+- ✅ **Streaming Multicast**: Un streamer transmite a N viewers con ancho de banda constante
+- ✅ **Escalabilidad**: Soporta 100+ viewers simultáneos
+- ✅ **Selección de Calidad**: 5 perfiles configurables con recomendación automática
+- ✅ **Buffering Adaptativo**: Gestión dinámica según condiciones de red del viewer
+- ✅ **Chat en Tiempo Real**: Mensajes y reacciones instantáneas
+- ✅ **Patrones de Diseño**: Factory, Strategy, Pub/Sub
+- ✅ **Buffer Inteligente**: Viewers tardíos reciben frames recientes automáticamente
+- ✅ **Monitoreo de Red**: Estadísticas WebRTC en tiempo real (pérdida de paquetes, latencia)
 
 ## 🚀 Inicio Rápido
 
@@ -9,77 +23,98 @@ Sistema de streaming unidireccional usando **Node.js**, **TypeScript**, **Socket
 npm install
 ```
 
-## ▶️ Ejecución
-
-### Opción 1: Interfaz Web (Recomendado - con video real)
-
-1. **Inicia el servidor:**
+### Inicia el servidor
 ```powershell
-npm run dev:server
+npm start
+# o alternativamente:
+npm run dev
 ```
 
-2. **Abre tu navegador:**
-   - Streamer: http://localhost:3000/streamer.html
-   - Viewer: http://localhost:3000/viewer.html
+### Abre tu navegador
+El servidor estará disponible en `http://localhost:3000`
 
-3. **Como Streamer:**
-   - Ingresa tu nombre
-   - Haz clic en "Crear Stream"
-   - Permite acceso a cámara y micrófono
-   - **Copia la Stream Key**
-   - Haz clic en "Iniciar Transmisión"
+- **Home**: http://localhost:3000
+- **Streamer**: http://localhost:3000/streamer.html
+- **Viewer**: http://localhost:3000/viewer.html
 
-4. **Como Viewer:**
-   - Ingresa tu nombre
-   - **Pega la Stream Key**
-   - Haz clic en "Unirse"
-   - ¡Ve el stream en vivo!
+### Cómo usar
 
-### Opción 2: Cliente CLI (Terminal - sin video)
+**Como Streamer:**
+1. Abre http://localhost:3000/streamer.html
+2. Ingresa tu nombre
+3. Haz clic en "Crear Stream"
+4. Permite acceso a cámara y micrófono
+5. **Copia la Stream Key** generada
+6. Haz clic en "Iniciar Transmisión"
+7. ¡Comparte la Stream Key con tus viewers!
 
-**Terminal 1 - Servidor:**
-```powershell
-npm run dev:server
-```
+**Como Viewer:**
+1. Abre http://localhost:3000/viewer.html
+2. Ingresa tu nombre
+3. **Pega la Stream Key** que te compartió el streamer
+4. Haz clic en "Unirse"
+5. ¡Disfruta del stream en vivo!
 
-**Terminal 2 - Cliente (Streamer):**
-```powershell
-npm run dev:client
-# Elige: 1. Transmitir (Streamer)
-```
+### Cliente CLI (Opcional - Solo para testing)
 
-**Terminal 3 - Cliente (Viewer):**
+Si quieres probar el sistema desde la terminal:
+
 ```powershell
 npm run dev:client
-# Elige: 2. Ver stream (Viewer)
 ```
 
-### Uso Básico
+**Nota**: El cliente CLI es solo para testing. Para la experiencia completa con video/audio, usa el navegador.
 
-**Interfaz Web:**
-1. Abre http://localhost:3000
-2. Elige "Soy Streamer" o "Soy Viewer"
-3. Comparte/ingresa la Stream Key
-4. ¡Disfruta del video en vivo!
+## 📋 Comandos Disponibles
 
-**Terminal CLI:**
-1. **Streamer**: Ingresa nombre → Crea stream (`s`) → **Copia la Stream Key** → Inicia (`s`)
-2. **Viewer**: Ingresa nombre → **Pega la Stream Key** → ¡Conectado!
-3. **Chat**: Usa `/chat <mensaje>` en ambos
-4. **Reacciones**: Usa `/react <emoji>` en viewer (ej: `/react 👍`)
-
-## 📋 Tabla de Contenidos
-
-- [Arquitectura](#arquitectura)
-- [Patrones de Diseño](#patrones-de-diseño)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Comandos Disponibles](#comandos-disponibles)
-- [API de Eventos](#api-de-eventos)
-- [Ejemplos de Uso](#ejemplos-de-uso)
+```powershell
+npm start          # Inicia el servidor (alias de npm run dev)
+npm run dev        # Inicia el servidor en modo desarrollo
+npm run build      # Compila TypeScript a JavaScript
+npm run dev:client # Cliente CLI para testing (opcional)
+npm run clean      # Limpia los archivos compilados
+```
 
 ---
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura del Sistema
+
+## 🏗️ Arquitectura del Sistema
+
+### Estructura del Proyecto
+```
+src/
+├── shared/         # Tipos e interfaces compartidos
+│   ├── types.ts    # Definiciones de tipos
+│   └── events.ts   # Constantes de eventos
+├── factories/      # Factory Pattern (creación de objetos)
+│   ├── UserFactory.ts      # Crea usuarios (Streamer/Viewer)
+│   ├── StreamFactory.ts    # Crea streams
+│   ├── MessageFactory.ts   # Crea mensajes
+│   └── MessageStrategies.ts # Strategy Pattern para mensajes
+├── pubsub/         # Publisher-Subscriber Pattern
+│   ├── EventBus.ts      # Bus de eventos central
+│   ├── Publisher.ts     # Publicador de eventos
+│   └── Subscriber.ts    # Suscriptor de eventos
+├── server/         # Servidor Hub + Managers
+│   ├── index.ts                # Servidor principal
+│   ├── Database.ts             # Persistencia con SQLite
+│   ├── UserManager.ts          # Gestión de usuarios
+│   ├── StreamManager.ts        # Gestión de streams
+│   ├── StreamDistributor.ts    # Distribución multicast
+│   ├── SubscriptionManager.ts  # Gestión de suscripciones
+│   └── NotificationService.ts  # Servicio de notificaciones
+└── clients/        # Clientes (para testing CLI)
+    ├── BaseClient.ts
+    ├── client.ts
+    ├── streamer.ts
+    └── viewer.ts
+
+public/
+├── index.html      # Página de inicio
+├── streamer.html   # Interfaz del streamer
+└── viewer.html     # Interfaz del viewer
+```
 
 ### Componentes Principales
 
@@ -109,54 +144,68 @@ npm run dev:client
 │  └──────────────────────────────────────────────────┘   │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │    FACTORIES & BUILDERS (Creación de Objetos)    │   │
+│  │    STREAMING (Distribución Multicast)            │   │
+│  │  - StreamDistributor: Distribuye datos 1→N       │   │
+│  │  - Buffer circular para late joiners             │   │
+│  │  - Optimización de ancho de banda                │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │       FACTORIES (Creación de Objetos)            │   │
 │  │  - UserFactory: Crea usuarios (Streamer/Viewer)  │   │
-│  │  - StreamBuilder: Construye streams              │   │
-│  │  - MessageFactory: Crea mensajes y reacciones    │   │
+│  │  - StreamFactory: Crea streams                   │   │
+│  │  - MessageFactory: Crea mensajes (con Strategy)  │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                          │
 │  Funciones:                                              │
-│  - Coordina conexiones entre peers                      │
-│  - Maneja señalización WebRTC                           │
+│  - Distribución multicast de video/audio                │
+│  - Maneja señalización WebRTC (opcional)                │
 │  - Gestiona chat y reacciones                           │
 │  - Emite eventos Pub/Sub                                │
 └────────────────┬────────────────────────────────────────┘
                  │
-                 │ Socket.IO
+                 │ Socket.IO (Multicast optimizado)
                  │
 ┌────────────────▼────────────────────────────────────────┐
 │                     VIEWER CLIENT                       │
 │  - Se conecta con Stream Key                            │
-│  - Recibe video (WebRTC)                                │
+│  - Recibe video/audio (Multicast)                       │
 │  - Envía/recibe mensajes de chat                        │
 │  - Envía reacciones                                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Flujo de Datos
+### Flujo de Datos (Multicast)
 
 1. **Streamer** → Crea stream → Recibe **Stream Key**
-2. **Server Hub** → Genera Stream Key único y registra stream
+2. **Server Hub** → Genera Stream Key único y registra en StreamDistributor
 3. **Viewer** → Ingresa Stream Key → Se conecta al stream
-4. **Server Hub** → Coordina señalización WebRTC entre Streamer y Viewer
-5. **WebRTC** → Conexión P2P directa para video (simplificada en esta demo)
-6. **Chat/Reacciones** → Fluyen a través del Server Hub usando Pub/Sub
+4. **Streamer** → Envía frame → **UNA SOLA VEZ** al servidor
+5. **StreamDistributor** → Distribuye frame a **TODOS los viewers** simultáneamente
+6. **Viewers tardíos** → Reciben buffer de últimos 30 frames (catchup automático)
+7. **Chat/Reacciones** → Fluyen a través del Server Hub usando Pub/Sub
+
+**💡 Ventaja clave**: El streamer usa ~2.5 Mbps sin importar si hay 1 o 100 viewers
 
 ---
 
 ## 🎨 Patrones de Diseño
 
 ### Factory Pattern
-Crea usuarios y mensajes de forma consistente:
+Crea usuarios, streams y mensajes de forma consistente:
 ```typescript
 UserFactory.createStreamer('John', socketId);
-MessageFactory.createChatMessage(streamId, userId, 'Hola!');
+StreamFactory.createStream(streamerId);
+MessageFactory.createChatMessage(streamId, userId, username, 'Hola!');
 ```
 
-### Builder Pattern
-Construye streams con Stream Keys únicas:
+### Strategy Pattern
+Permite añadir nuevos tipos de mensajes fácilmente:
 ```typescript
-new StreamBuilder().withStreamer(userId).markAsStarted().build();
+// El MessageFactory usa estrategias internamente
+MessageFactory.createChatMessage(...);     // Usa ChatMessageStrategy
+MessageFactory.createSystemMessage(...);   // Usa SystemMessageStrategy
+MessageFactory.createReaction(...);        // Usa ReactionMessageStrategy
 ```
 
 ### Publisher-Subscriber Pattern
@@ -168,37 +217,9 @@ subscriber.subscribe(Events.STREAM_CREATED, callback);
 
 ---
 
-## 📁 Estructura del Proyecto
-
-```
-src/
-├── shared/         # Tipos e interfaces
-├── factories/      # Factory & Builder patterns
-├── pubsub/         # Sistema Pub/Sub
-├── server/         # Server Hub + Managers
-└── clients/        # Streamer & Viewer
-```
-
----
-
-## � Comandos Disponibles
-
-### Streamer
-- `/chat <mensaje>` - Enviar mensaje al chat
-- `/viewers` - Ver número de viewers
-- `/end` - Finalizar stream
-
-### Viewer
-- `/chat <mensaje>` - Enviar mensaje al chat
-- `/react <emoji>` - Enviar reacción (👍 ❤️ 🔥 😂)
-- `/viewers` - Ver número de viewers
-- `/leave` - Salir del stream
-
----
-
 ## 📡 API de Eventos
 
-### Principales Eventos
+### Eventos Principales
 
 | Evento | Dirección | Descripción |
 |--------|-----------|-------------|
@@ -206,57 +227,39 @@ src/
 | `stream:create` | Cliente → Servidor | Crear stream |
 | `stream:join` | Cliente → Servidor | Unirse con Stream Key |
 | `stream:start` | Cliente → Servidor | Iniciar transmisión |
+| `stream:end` | Cliente → Servidor | Finalizar transmisión |
+| `stream:data:send` | Cliente → Servidor | Enviar datos de stream |
+| `stream:data` | Servidor → Viewers | Distribuir datos (multicast) |
 | `chat:message:send` | Cliente → Servidor | Enviar mensaje |
 | `chat:message:broadcast` | Servidor → Todos | Difundir mensaje |
 | `reaction:send` | Cliente → Servidor | Enviar reacción |
 | `reaction:broadcast` | Servidor → Todos | Difundir reacción |
+| `user:subscribe` | Cliente → Servidor | Suscribirse a usuario |
+| `stream:notification` | Servidor → Suscriptores | Notificación de stream |
 
 ---
 
-## 📝 Ejemplos de Uso
+## 💾 Persistencia de Datos
 
-### Sesión Básica
+El sistema utiliza **SQLite** para persistencia de datos:
 
-**Streamer:**
-```
-> /chat Bienvenidos al stream!
-💬 Tú: Bienvenidos al stream!
-```
+- **Usuarios**: Información de streamers y viewers
+- **Streams**: Historial completo de transmisiones
+- **Suscripciones**: Relaciones entre usuarios (followers/following)
 
-**Viewer:**
-```
-> /chat Hola!
-💬 Tú: Hola!
-
-> /react 👍
-👍 Reacción enviada
-```
-
-### Múltiples Viewers
-
-- Abre varias terminales de viewer
-- Todos usan la misma Stream Key
-- El chat es compartido entre todos
-- Contador de viewers se actualiza automáticamente
+Los datos persisten entre reinicios del servidor, permitiendo:
+- Recuperar usuarios registrados
+- Mantener historial de streams
+- Conservar suscripciones entre sesiones
 
 ---
 
-## 🔧 Troubleshooting
+## 🔔 Sistema de Notificaciones
 
-### "Stream no encontrado"
-- Verifica que la Stream Key sea correcta (32 caracteres)
-- Confirma que el streamer haya iniciado el stream
+Los usuarios pueden **suscribirse a streamers** para recibir notificaciones cuando:
+- Un streamer inicia una transmisión
+- Un streamer finaliza su transmisión
 
-### "Puerto en uso"
-```powershell
-$env:PORT=3001
-npm run dev:server
-```
-
-### No veo mensajes
-- Asegúrate de estar en el mismo stream
-- Verifica la Stream Key
+Las notificaciones se envían en tiempo real usando Socket.IO y el patrón Pub/Sub.
 
 ---
-
-**¡Disfruta construyendo con StreamHub!** 🚀

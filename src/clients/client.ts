@@ -1,5 +1,5 @@
 /**
- * Cliente Unificado: Puede ser Streamer o Viewer
+ * Cliente CLI simple para testing
  */
 
 import { io, Socket } from 'socket.io-client';
@@ -52,9 +52,9 @@ class StreamHubClient {
       console.log('\n╔════════════════════════════════════════╗');
       console.log('║        STREAM CREADO CON ÉXITO        ║');
       console.log('╚════════════════════════════════════════╝');
-      console.log(`📺 Stream ID: ${this.stream.id}`);
-      console.log(`🔑 Stream Key: ${this.stream.streamKey}`);
-      console.log('\n⚠️  IMPORTANTE: Comparte esta Stream Key con tus viewers');
+      console.log(` Stream Key: ${this.stream.streamKey}`);
+      console.log('\n⚠️  Comparte esta key o úsala en el navegador:');
+      console.log('   http://localhost:3000/viewer.html');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       this.promptStartStream();
     });
@@ -75,10 +75,9 @@ class StreamHubClient {
       console.log('\n╔════════════════════════════════════════╗');
       console.log('║     CONECTADO AL STREAM CON ÉXITO     ║');
       console.log('╚════════════════════════════════════════╝');
-      console.log(`📺 Stream ID: ${this.stream.id}`);
-      console.log(`👥 Viewers: ${this.stream.viewerCount}`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-      console.log('🎬 Estás viendo el stream en vivo\n');
+      console.log(` Viewers: ${this.stream.viewerCount}`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('💡 Para ver video, usa: http://localhost:3000/viewer.html\n');
       this.showMenu();
     });
 
@@ -138,9 +137,10 @@ class StreamHubClient {
    * Solicita elegir el rol
    */
   private promptRole(): void {
-    console.log('\n╔════════════════════════════════════════╗');
-    console.log('║       STREAMHUB - CLIENTE             ║');
-    console.log('╚════════════════════════════════════════╝\n');
+    console.log('\n╔═══════════════════════════════════════╗');
+    console.log('║     STREAMHUB - CLIENTE CLI          ║');
+    console.log('║  (Usa el navegador para UI completa) ║');
+    console.log('╚═══════════════════════════════════════╝\n');
     this.rl.question('¿Qué quieres hacer?\n  1. Transmitir (Streamer)\n  2. Ver stream (Viewer)\n\nElige (1 o 2): ', (choice: string) => {
       if (choice === '1') {
         this.role = UserRole.STREAMER;
@@ -223,17 +223,17 @@ class StreamHubClient {
    */
   private showMenu(): void {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('Comandos disponibles:');
-    console.log('  /chat <mensaje>  - Enviar mensaje al chat');
+    console.log('Comandos:');
+    console.log('  /chat <mensaje>  - Enviar mensaje');
     
     if (this.role === UserRole.VIEWER) {
-      console.log('  /react <emoji>   - Enviar reacción (ej: 👍 ❤️ 🔥)');
-      console.log('  /leave           - Salir del stream');
+      console.log('  /react <emoji>   - Reacción (👍 ❤️ 🔥)');
+      console.log('  /leave           - Salir');
     } else {
       console.log('  /end             - Finalizar stream');
     }
     
-    console.log('  /viewers         - Ver número de viewers');
+    console.log('  /viewers         - Ver viewers');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     this.showPrompt();
   }
@@ -340,7 +340,8 @@ class StreamHubClient {
    * Inicia el cliente
    */
   start(): void {
-    console.log('🔗 Conectando a ' + SERVER_URL + '...\n');
+    console.log('🔗 Conectando al servidor...');
+    console.log('💡 Recuerda: Usa el navegador para la experiencia completa\n');
   }
 }
 

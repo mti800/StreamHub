@@ -4,11 +4,11 @@
   "description": "Sistema de streaming unidireccional con chat en tiempo real usando WebRTC y Pub/Sub",
   "main": "dist/server/index.js",
   "scripts": {
-    "build": "tsc",
+    "start": "npm run dev",
+    "dev": "ts-node src/server/index.ts",
     "dev:server": "ts-node src/server/index.ts",
     "dev:client": "ts-node src/clients/client.ts",
-    "start:server": "node dist/server/index.js",
-    "start:client": "node dist/clients/client.js",
+    "build": "tsc",
     "clean": "rmdir /s /q dist 2>nul || echo Cleaned"
   },
   "keywords": [
@@ -21,15 +21,17 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "express": "^4.18.2",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
-    "express": "^4.18.2",
     "uuid": "^9.0.1"
   },
   "optionalDependencies": {
     "wrtc": "^0.4.7"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.0",
     "@types/uuid": "^9.0.7",

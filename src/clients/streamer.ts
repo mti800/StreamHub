@@ -2,45 +2,15 @@
  * Streamer Client: Cliente que transmite el stream
  */
 
-import { io, Socket } from 'socket.io-client';
-import * as readline from 'readline';
+import { BaseClient } from './BaseClient';
 import { Events } from '../shared/events';
-import { IStream, IUser, UserRole } from '../shared/types';
+import { IStream, UserRole } from '../shared/types';
 
-const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
-
-class StreamerClient {
-  private socket: Socket;
-  private user: IUser | null = null;
-  private stream: IStream | null = null;
-  private rl: readline.Interface;
-  private isStreaming: boolean = false;
-
-  constructor() {
-    this.socket = io(SERVER_URL);
-    this.rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    this.setupSocketListeners();
-  }
-
+class StreamerClient extends BaseClient {
   /**
-   * Configura los listeners de Socket.IO
+   * Configura los listeners específicos del streamer
    */
-  private setupSocketListeners(): void {
-    this.socket.on('connect', () => {
-      console.log('✅ Conectado al servidor');
-      this.promptUsername();
-    });
-
-    this.socket.on(Events.USER_REGISTERED, (data: { user: IUser }) => {
-      this.user = data.user;
-      console.log(`✅ Registrado como: ${this.user.username} (STREAMER)`);
-      this.promptCreateStream();
-    });
-
+  protected setupSpecificListeners(): void {
     this.socket.on(Events.STREAM_CREATED, (data: { stream: IStream }) => {
       this.stream = data.stream;
       console.log('\n╔════════════════════════════════════════╗');
@@ -54,53 +24,23 @@ class StreamerClient {
     });
 
     this.socket.on(Events.STREAM_STARTED, (data: { stream: IStream }) => {
-      this.isStreaming = true;
+      this.isActive = true;
       console.log('\n🎬 ¡Stream iniciado! Estás transmitiendo en vivo');
       this.showStreamMenu();
     });
 
     this.socket.on(Events.STREAM_ENDED, () => {
-      this.isStreaming = false;
+      this.isActive = false;
       console.log('\n🛑 Stream finalizado');
-      this.promptRestart();
+      this.promptRestart('¿Crear otro stream?', () => {
+        this.socket.emit(Events.STREAM_CREATE);
+      });
     });
 
     this.socket.on(Events.VIEWER_JOINED, (data: { username: string; viewerCount: number }) => {
-      console.log(`\n👤 ${data.username} se unió al stream`);
+      console.log(`\n� ${data.username} se unió al stream`);
       console.log(`📊 Viewers actuales: ${data.viewerCount}`);
       this.showPrompt();
-    });
-
-    this.socket.on(Events.VIEWER_COUNT_UPDATE, (data: { viewerCount: number }) => {
-      if (this.isStreaming) {
-        console.log(`📊 Viewers actuales: ${data.viewerCount}`);
-      }
-    });
-
-    this.socket.on(Events.CHAT_MESSAGE_BROADCAST, (data: { message: any }) => {
-      const msg = data.message;
-      if (msg.userId !== this.user?.id) {
-        console.log(`\n💬 [${msg.username}]: ${msg.content}`);
-        this.showPrompt();
-      }
-    });
-
-    this.socket.on(Events.REACTION_BROADCAST, (data: { reaction: any }) => {
-      const reaction = data.reaction;
-      if (reaction.userId !== this.user?.id) {
-        console.log(`\n${reaction.emoji} ${reaction.username}`);
-        this.showPrompt();
-      }
-    });
-
-    this.socket.on(Events.STREAM_ERROR, (data: { message: string }) => {
-      console.error(`\n❌ Error: ${data.message}`);
-      this.showPrompt();
-    });
-
-    this.socket.on('disconnect', () => {
-      console.log('\n❌ Desconectado del servidor');
-      process.exit(0);
     });
 
     // WebRTC Signaling (simplificado para demo)
@@ -111,20 +51,24 @@ class StreamerClient {
   }
 
   /**
-   * Solicita el nombre de usuario
+   * Callback después del registro de usuario
    */
-  private promptUsername(): void {
-    this.rl.question('\n👤 Ingresa tu nombre de usuario: ', (username: string) => {
-      if (username.trim()) {
-        this.socket.emit(Events.USER_REGISTER, {
-          username: username.trim(),
-          role: UserRole.STREAMER
-        });
-      } else {
-        console.log('❌ El nombre de usuario no puede estar vacío');
-        this.promptUsername();
-      }
-    });
+  protected onUserRegistered(): void {
+    this.promptCreateStream();
+  }
+
+  /**
+   * Retorna el rol del usuario
+   */
+  protected getUserRole(): UserRole {
+    return UserRole.STREAMER;
+  }
+
+  /**
+   * Retorna el nombre del cliente
+   */
+  protected getClientName(): string {
+    return '     STREAMER CLIENT     ';
   }
 
   /**
@@ -171,44 +115,14 @@ class StreamerClient {
   }
 
   /**
-   * Muestra el prompt y procesa comandos
+   * Maneja comandos específicos del streamer
    */
-  private showPrompt(): void {
-    if (!this.isStreaming) return;
-
-    this.rl.question('> ', (input: string) => {
-      this.handleCommand(input.trim());
-    });
-  }
-
-  /**
-   * Maneja los comandos del streamer
-   */
-  private handleCommand(input: string): void {
-    if (!input) {
-      this.showPrompt();
-      return;
-    }
-
-    if (input.startsWith('/chat ')) {
-      const message = input.substring(6);
-      if (message && this.stream) {
-        this.socket.emit(Events.CHAT_MESSAGE_SEND, {
-          streamKey: this.stream.streamKey,
-          content: message
-        });
-        console.log(`💬 Tú: ${message}`);
-      }
-    } else if (input === '/end') {
+  protected handleSpecificCommand(input: string): void {
+    if (input === '/end') {
       this.endStream();
-      return;
-    } else if (input === '/viewers') {
-      console.log(`📊 Viewers actuales: ${this.stream?.viewerCount || 0}`);
     } else {
       console.log('❌ Comando no reconocido. Usa /chat, /end o /viewers');
     }
-
-    this.showPrompt();
   }
 
   /**
@@ -221,31 +135,6 @@ class StreamerClient {
       });
       console.log('\n🛑 Finalizando stream...');
     }
-  }
-
-  /**
-   * Pregunta si desea reiniciar
-   */
-  private promptRestart(): void {
-    this.rl.question('\n¿Crear otro stream? (s/n): ', (answer: string) => {
-      if (answer.toLowerCase() === 's') {
-        this.stream = null;
-        this.socket.emit(Events.STREAM_CREATE);
-      } else {
-        console.log('👋 ¡Hasta luego!');
-        process.exit(0);
-      }
-    });
-  }
-
-  /**
-   * Inicia el cliente
-   */
-  start(): void {
-    console.log('╔════════════════════════════════════════╗');
-    console.log('║      STREAMER CLIENT - INICIADO       ║');
-    console.log('╚════════════════════════════════════════╝');
-    console.log(`🔗 Conectando a ${SERVER_URL}...\n`);
   }
 }
 
